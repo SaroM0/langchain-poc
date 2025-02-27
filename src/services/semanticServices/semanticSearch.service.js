@@ -1,42 +1,36 @@
-// src/services/semanticSearch.service.js
 require("dotenv").config();
 const { initPinecone } = require("../../config/pinecone.config");
-const { PineconeStore } = require("langchain/vectorstores/pinecone");
+const { PineconeStore } = require("@langchain/pinecone");
 const { OpenAIEmbeddings } = require("@langchain/openai");
 
-/**
- * Inicializa el vector store de Pinecone usando LangChain.
- *
- * @param {string} indexName - El nombre del índice a utilizar.
- * @returns {Promise<PineconeStore>} - Una instancia del vector store lista para búsquedas semánticas.
- */
 async function initVectorStore(indexName) {
-  // Obtiene el índice de Pinecone utilizando la configuración actualizada (incluyendo environment).
-  const index = await initPinecone(indexName);
-  // Configura el modelo de embeddings de OpenAI.
+  // Obtain the Pinecone index using the updated configuration.
+  const pineconeIndex = await initPinecone(indexName);
+
+  // Configure the OpenAI embeddings model.
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: process.env.OPENAI_API_KEY,
+    model: "text-embedding-3-large",
   });
-  // Crea el vector store a partir del índice existente de Pinecone.
-  const vectorStore = await PineconeStore.fromExistingIndex(index, embeddings);
+
+  // Create the vector store from the existing Pinecone index.
+  const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
+    pineconeIndex,
+    maxConcurrency: 5,
+  });
+
   return vectorStore;
 }
 
-/**
- * Realiza una búsqueda semántica en los mensajes vectorizados de un canal específico usando LangChain.
- *
- * @param {string} query - La consulta en lenguaje natural.
- * @param {string|number} channelId - El ID del canal en el que se realizará la búsqueda.
- * @param {number} topK - Número de resultados principales a devolver (por defecto es 10).
- * @returns {Promise<Array>} - Un arreglo con los documentos (mensajes) coincidentes junto a sus metadatos.
- */
 async function semanticSearch(query, channelId, topK = 10) {
   try {
-    // Construir el nombre del índice en base al ID del canal.
+    // Build the index name based on the channel ID.
     const indexName = `channel-${channelId}`;
-    // Inicializar el vector store para el índice especificado.
+
+    // Initialize the vector store for the specified index.
     const vectorStore = await initVectorStore(indexName);
-    // Ejecutar la búsqueda de similitud usando el query en lenguaje natural.
+
+    // Perform the similarity search using the natural language query.
     const results = await vectorStore.similaritySearch(query, topK);
     return results;
   } catch (error) {
@@ -45,19 +39,12 @@ async function semanticSearch(query, channelId, topK = 10) {
   }
 }
 
-/**
- * Usa el contexto obtenido de los resultados de la búsqueda semántica para construir un string de contexto.
- *
- * @param {string} query - La consulta en lenguaje natural.
- * @param {string|number} channelId - El ID del canal en el que se realizará la búsqueda.
- * @param {number} topK - Número de resultados a utilizar como contexto (por defecto es 10).
- * @returns {Promise<string>} - El contexto construido a partir de los documentos recuperados.
- */
 async function semanticQueryWithContext(query, channelId, topK = 10) {
   try {
-    // Obtener los documentos relevantes mediante la búsqueda semántica.
+    // Retrieve the relevant documents via semantic search.
     const matches = await semanticSearch(query, channelId, topK);
-    // Construir un string de contexto concatenando el campo "message_text" de los metadatos.
+
+    // Build a context string concatenating the 'message_text' from each document's metadata.
     let contextText = "";
     if (matches && matches.length > 0) {
       contextText = matches

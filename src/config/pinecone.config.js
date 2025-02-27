@@ -1,11 +1,9 @@
 require("dotenv").config();
-const { PineconeClient } = require("@pinecone-database/pinecone");
+const { Pinecone: PineconeClient } = require("@pinecone-database/pinecone");
 
 async function initPinecone(indexName) {
   const client = new PineconeClient();
-  await client.init({
-    apiKey: process.env.PINECONE_API_KEY,
-  });
+  // No es necesario llamar a client.init(), ya que el cliente usa automáticamente las variables de entorno.
   return client.Index(indexName);
 }
 

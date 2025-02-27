@@ -4,10 +4,22 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  whatwg-url: ^10.0.0
+
 importers:
 
   .:
     dependencies:
+      '@langchain/core':
+        specifier: ^0.3.41
+        version: 0.3.41(openai@4.85.4(zod@3.24.2))
+      '@langchain/openai':
+        specifier: ^0.4.4
+        version: 0.4.4(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))
+      '@langchain/pinecone':
+        specifier: ^0.2.0
+        version: 0.2.0(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))(@pinecone-database/pinecone@5.0.2)
       '@pinecone-database/pinecone':
         specifier: ^5.0.2
         version: 5.0.2
@@ -16,15 +28,15 @@ importers:
         version: 16.4.7
       langchain:
         specifier: ^0.3.19
-        version: 0.3.19(@langchain/core@0.3.40(openai@4.85.4(zod@3.24.2)))(openai@4.85.4(zod@3.24.2))
+        version: 0.3.19(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))(openai@4.85.4(zod@3.24.2))
 
 packages:
 
   '@cfworker/json-schema@4.1.1':
     resolution: {integrity: sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og==}
 
-  '@langchain/core@0.3.40':
-    resolution: {integrity: sha512-RGhJOTzJv6H+3veBAnDlH2KXuZ68CXMEg6B6DPTzL3IGDyd+vLxXG4FIttzUwjdeQKjrrFBwlXpJDl7bkoApzQ==}
+  '@langchain/core@0.3.41':
+    resolution: {integrity: sha512-e/vOyfBxH6Wf2iWvQTecfnkTLGyy6QMTjHgRdU89d3+cHHnNURRCjFbq0dOLWqxnW3eWbXkmNhf3MauRDM+zbQ==}
     engines: {node: '>=18'}
 
   '@langchain/openai@0.4.4':
@@ -32,6 +44,13 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       '@langchain/core': '>=0.3.39 <0.4.0'
+
+  '@langchain/pinecone@0.2.0':
+    resolution: {integrity: sha512-O3tWSCIbm1uDLh0J4R0ETmYeRFtQAI2qcSAMC/VW1+xBb+o/IJ5VMyJhGKc4RsmyWE0wG4kOuwfIcCP+XV0clw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@langchain/core': '>=0.2.21 <0.4.0'
+      '@pinecone-database/pinecone': ^5.0.2
 
   '@langchain/textsplitters@0.1.0':
     resolution: {integrity: sha512-djI4uw9rlkAb5iMhtLED+xJebDdAG935AdP4eRTB02R7OB/act55Bj9wsskhZsvuyQRpO4O1wQOp85s6T6GWmw==}
@@ -144,6 +163,10 @@ packages:
 
   eventemitter3@4.0.7:
     resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
+
+  flat@5.0.2:
+    resolution: {integrity: sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==}
+    hasBin: true
 
   form-data-encoder@1.7.2:
     resolution: {integrity: sha512-qfqtYan3rxrnCk1VYaA4H+Ms9xdpPqvLZa6xmMgFvhO32x7/3J/ExcTd6qpxM0vH2GdMI+poehyBZvqfMTto8A==}
@@ -330,6 +353,10 @@ packages:
     resolution: {integrity: sha512-rhIwUycgwwKcP9yTOOFK/AKsAopjjCakVqLHePO3CC6Mir1Z99xT+R63jZxAT5lFZLa2inS5h+ZS2GvR99/FBg==}
     engines: {node: '>=8'}
 
+  punycode@2.3.1:
+    resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
+    engines: {node: '>=6'}
+
   retry@0.13.1:
     resolution: {integrity: sha512-XQBQ3I8W1Cge0Seh+6gjj03LbmRFWuoszgK9ooCpwYIrhhoO80pfq4cUkU5DkknwfOfFteRwlZ56PYOGYyFWdg==}
     engines: {node: '>= 4'}
@@ -346,8 +373,9 @@ packages:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
 
-  tr46@0.0.3:
-    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+  tr46@3.0.0:
+    resolution: {integrity: sha512-l7FvfAHlcmulp8kr+flpQZmVwtu7nfRV7NZujtN0OqES8EL4O4e0qqzL0DC5gAvx/ZC/9lk6rhcUwYvkBnBnYA==}
+    engines: {node: '>=12'}
 
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
@@ -360,11 +388,13 @@ packages:
     resolution: {integrity: sha512-QW95TCTaHmsYfHDybGMwO5IJIM93I/6vTRk+daHTWFPhwh+C8Cg7j7XyKrwrj8Ib6vYXe0ocYNrmzY4xAAN6ug==}
     engines: {node: '>= 14'}
 
-  webidl-conversions@3.0.1:
-    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+  webidl-conversions@7.0.0:
+    resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
+    engines: {node: '>=12'}
 
-  whatwg-url@5.0.0:
-    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
+  whatwg-url@10.0.0:
+    resolution: {integrity: sha512-CLxxCmdUby142H5FZzn4D8ikO1cmypvXVQktsgosNy4a4BHrDHeciBBGZhb0bNoR5/MltoCatso+vFjjGx8t0w==}
+    engines: {node: '>=12'}
 
   yaml@2.7.0:
     resolution: {integrity: sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA==}
@@ -383,7 +413,7 @@ snapshots:
 
   '@cfworker/json-schema@4.1.1': {}
 
-  '@langchain/core@0.3.40(openai@4.85.4(zod@3.24.2))':
+  '@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       ansi-styles: 5.2.0
@@ -400,9 +430,9 @@ snapshots:
     transitivePeerDependencies:
       - openai
 
-  '@langchain/openai@0.4.4(@langchain/core@0.3.40(openai@4.85.4(zod@3.24.2)))':
+  '@langchain/openai@0.4.4(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))':
     dependencies:
-      '@langchain/core': 0.3.40(openai@4.85.4(zod@3.24.2))
+      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
       js-tiktoken: 1.0.19
       openai: 4.85.4(zod@3.24.2)
       zod: 3.24.2
@@ -411,9 +441,16 @@ snapshots:
       - encoding
       - ws
 
-  '@langchain/textsplitters@0.1.0(@langchain/core@0.3.40(openai@4.85.4(zod@3.24.2)))':
+  '@langchain/pinecone@0.2.0(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))(@pinecone-database/pinecone@5.0.2)':
     dependencies:
-      '@langchain/core': 0.3.40(openai@4.85.4(zod@3.24.2))
+      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
+      '@pinecone-database/pinecone': 5.0.2
+      flat: 5.0.2
+      uuid: 10.0.0
+
+  '@langchain/textsplitters@0.1.0(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))':
+    dependencies:
+      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
       js-tiktoken: 1.0.19
 
   '@pinecone-database/pinecone@5.0.2': {}
@@ -508,6 +545,8 @@ snapshots:
 
   eventemitter3@4.0.7: {}
 
+  flat@5.0.2: {}
+
   form-data-encoder@1.7.2: {}
 
   form-data@4.0.2:
@@ -570,11 +609,11 @@ snapshots:
 
   jsonpointer@5.0.1: {}
 
-  langchain@0.3.19(@langchain/core@0.3.40(openai@4.85.4(zod@3.24.2)))(openai@4.85.4(zod@3.24.2)):
+  langchain@0.3.19(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))(openai@4.85.4(zod@3.24.2)):
     dependencies:
-      '@langchain/core': 0.3.40(openai@4.85.4(zod@3.24.2))
-      '@langchain/openai': 0.4.4(@langchain/core@0.3.40(openai@4.85.4(zod@3.24.2)))
-      '@langchain/textsplitters': 0.1.0(@langchain/core@0.3.40(openai@4.85.4(zod@3.24.2)))
+      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
+      '@langchain/openai': 0.4.4(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))
+      '@langchain/textsplitters': 0.1.0(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))
       js-tiktoken: 1.0.19
       js-yaml: 4.1.0
       jsonpointer: 5.0.1
@@ -618,7 +657,7 @@ snapshots:
 
   node-fetch@2.7.0:
     dependencies:
-      whatwg-url: 5.0.0
+      whatwg-url: 10.0.0
 
   openai@4.85.4(zod@3.24.2):
     dependencies:
@@ -652,6 +691,8 @@ snapshots:
     dependencies:
       p-finally: 1.0.0
 
+  punycode@2.3.1: {}
+
   retry@0.13.1: {}
 
   semver@7.7.1: {}
@@ -662,7 +703,9 @@ snapshots:
     dependencies:
       has-flag: 4.0.0
 
-  tr46@0.0.3: {}
+  tr46@3.0.0:
+    dependencies:
+      punycode: 2.3.1
 
   undici-types@5.26.5: {}
 
@@ -670,12 +713,12 @@ snapshots:
 
   web-streams-polyfill@4.0.0-beta.3: {}
 
-  webidl-conversions@3.0.1: {}
+  webidl-conversions@7.0.0: {}
 
-  whatwg-url@5.0.0:
+  whatwg-url@10.0.0:
     dependencies:
-      tr46: 0.0.3
-      webidl-conversions: 3.0.1
+      tr46: 3.0.0
+      webidl-conversions: 7.0.0
 
   yaml@2.7.0: {}
 
