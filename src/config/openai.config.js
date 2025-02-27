@@ -1,11 +1,9 @@
-// src/config/openai.config.js
 require("dotenv").config();
-const { ChatOpenAI } = require("@langchain/openai");
+const { OpenAIEmbeddings } = require("@langchain/openai");
 
-const openAIConfig = {
+const openaiEmbeddings = new OpenAIEmbeddings({
   openAIApiKey: process.env.OPENAI_API_KEY,
-};
+  model: "text-embedding-3-large",
+});
 
-const chatModel = new ChatOpenAI(openAIConfig);
-
-module.exports = { chatModel, openAIConfig };
+module.exports = { openaiEmbeddings };
