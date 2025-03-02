@@ -15,7 +15,9 @@
     "@langchain/pinecone": "^0.2.0",
     "@pinecone-database/pinecone": "^5.0.2",
     "dotenv": "^16.4.7",
-    "langchain": "^0.3.19"
+    "langchain": "^0.3.19",
+    "mysql2": "^3.12.0",
+    "sequelize": "^6.37.5"
   },
   "resolutions": {
     "whatwg-url": "^10.0.0"
