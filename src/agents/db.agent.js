@@ -1,9 +1,6 @@
 const { openaiChat } = require("../config/openai.config");
-const {
-  getDatabaseSchemaSummary,
-  executeQuery,
-} = require("../services/db/executeQuery.service");
 const { getDatabaseContext } = require("../services/db/getDbContext.service");
+const { executeQuery } = require("../services/db/executeQuery.service");
 
 /**
  * Relational Database Management Agent.
@@ -17,7 +14,7 @@ const { getDatabaseContext } = require("../services/db/getDbContext.service");
  * 2. Retrieves the current database schema summary to supply context.
  * 3. Constructs system and user messages that include the schema details.
  * 4. Invokes the language model to generate a structured JSON response with a Sequelize query.
- * 5. Executes the generated Sequelize query and returns the result.
+ * 5. Parses the response and executes the generated Sequelize query.
  *
  * Expected JSON format from the model:
  * {
@@ -100,13 +97,23 @@ Example: {"sequelizeQuery": {"model": "User", "method": "findAll", "options": {"
     });
     console.log("Received result from language model:", result);
 
-    if (!result.sequelizeQuery) {
+    // Parse the JSON content from the response
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(result.content);
+    } catch (parseError) {
+      throw new Error(
+        "Error parsing language model response: " + parseError.message
+      );
+    }
+
+    if (!parsedResponse.sequelizeQuery) {
       throw new Error(
         "The response from the language model does not contain 'sequelizeQuery'."
       );
     }
 
-    const queryObject = result.sequelizeQuery;
+    const queryObject = parsedResponse.sequelizeQuery;
     console.log("Generated query object:", queryObject);
 
     const queryResult = await executeQuery(queryObject);

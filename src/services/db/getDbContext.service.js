@@ -16,10 +16,7 @@ async function getDatabaseContext() {
     console.log("Returning cached schema summary.");
     return cachedSchemaSummary;
   }
-  const filePath = path.join(
-    __dirname,
-    "../../config/dbContext/dbSchemaSummary.md"
-  );
+  const filePath = path.join(__dirname, "../../config/db/dbSchemaSummary.md");
   try {
     console.log(`Reading schema summary from file: ${filePath}`);
     const schema = await fs.promises.readFile(filePath, "utf8");

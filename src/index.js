@@ -3,7 +3,7 @@ const readline = require("readline");
 const { databaseManagementAgent } = require("./agents/db.agent");
 const {
   structureFragments,
-} = require("./services/semanticServices/semanticSearch.service");
+} = require("./services/semantic/semanticSearch.service");
 
 // Create an interface for reading input from the console.
 const rl = readline.createInterface({
