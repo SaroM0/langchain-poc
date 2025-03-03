@@ -1,16 +1,16 @@
-const Organization = require("./Organization");
-const Server = require("./Server");
-const User = require("./User");
-const Role = require("./Role");
-const UserRole = require("./UserRole");
-const Channel = require("./Channel");
-const ChannelUser = require("./ChannelUser");
-const Thread = require("./Thread");
-const Message = require("./Message");
-const MessageAttachment = require("./MessageAttachment");
-const MessageReaction = require("./MessageReaction");
-const TrendingTopic = require("./TrendingTopic");
-const MessageMention = require("./MessageMention");
+const Organization = require("./organization.model");
+const Server = require("./server.model");
+const User = require("./user.model");
+const Role = require("./role.model");
+const UserRole = require("./userRole.model");
+const Channel = require("./channel.model");
+const ChannelUser = require("./channelUser.model");
+const Thread = require("./thread.model");
+const Message = require("./message.model");
+const MessageAttachment = require("./messageAttachment.model");
+const MessageReaction = require("./messageReaction.model");
+const TrendingTopic = require("./trendingTopic.model");
+const MessageMention = require("./messageMention.model");
 
 // Associations
 

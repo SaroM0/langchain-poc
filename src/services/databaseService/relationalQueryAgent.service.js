@@ -4,10 +4,10 @@ const sequelize = require("../../config/sequelize.config");
 const { generateText } = require("../openaiServices/openai.service");
 const {
   semanticQueryWithContextFunction,
-} = require("../../config/functionsDeclaration/sqlFunctions");
+} = require("../../config/functionDeclaration/relationalFunctions");
 
 // Importación de los modelos definidos en src/models/index.js
-const models = require("../../models");
+const models = require("../../models/database");
 
 // Caching for the schema summary to avoid reading the file repeatedly.
 let cachedSchemaSummary = null;
