@@ -78,8 +78,7 @@ async function routeDecision({ query, channel_id }) {
   } else {
     // Semantic => structureFragments
     console.log("[routeDecision] Sending query to structureFragments...");
-    const safeChannelId = channel_id || "default_channel";
-    result = await structureFragments(query, safeChannelId);
+    result = await structureFragments(query, channel_id);
   }
 
   console.log("[routeDecision] Result from chosen logic:", result);
