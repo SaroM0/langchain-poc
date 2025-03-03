@@ -1,8 +1,6 @@
 require("dotenv").config();
 const readline = require("readline");
-const {
-  generateSQLQuery,
-} = require("./services/databaseService/relationalQueryAgent.service");
+const { databaseManagementAgent } = require("./agents/db.agent");
 const {
   structureFragments,
 } = require("./services/semanticServices/semanticSearch.service");
@@ -15,19 +13,19 @@ const rl = readline.createInterface({
 
 // Display the menu options.
 console.log("Select an option:");
-console.log("1: Generate Sequelize Query");
+console.log("1: Generate and Execute DB Agent Query");
 console.log("2: Semantic Search");
 
 rl.question("Option: ", (option) => {
   if (option.trim() === "1") {
-    // Option 1: Generate a Sequelize query from a natural language prompt.
+    // Option 1: Use the DB agent to generate and execute a Sequelize query from a natural language prompt.
     rl.question("Enter your natural language query: ", async (query) => {
       try {
-        const result = await generateSQLQuery(query);
-        console.log("\nGenerated Sequelize Query Result:");
+        const result = await databaseManagementAgent(query);
+        console.log("\nGenerated and Executed DB Agent Query Result:");
         console.log(result);
       } catch (error) {
-        console.error("Error generating Sequelize query:", error);
+        console.error("Error generating DB agent query:", error);
       } finally {
         rl.close();
       }

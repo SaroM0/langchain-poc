@@ -10,7 +10,7 @@ let cachedSchemaSummary = null;
  *
  * @returns {Promise<string>} The content of the schema summary.
  */
-async function getDatabaseSchemaSummary() {
+async function getDatabaseContext() {
   console.log("Entering getDatabaseSchemaSummary...");
   if (cachedSchemaSummary) {
     console.log("Returning cached schema summary.");
@@ -32,4 +32,4 @@ async function getDatabaseSchemaSummary() {
   }
 }
 
-module.exports = { getDatabaseSchemaSummary };
+module.exports = { getDatabaseContext };

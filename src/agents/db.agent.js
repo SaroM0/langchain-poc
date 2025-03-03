@@ -1,8 +1,9 @@
 const { openaiChat } = require("../config/openai.config");
 const {
   getDatabaseSchemaSummary,
-  executeSequelizeQuery,
+  executeQuery,
 } = require("../services/db/executeQuery.service");
+const { getDatabaseContext } = require("../services/db/getDbContext.service");
 
 /**
  * Relational Database Management Agent.
@@ -40,12 +41,12 @@ async function databaseManagementAgent(userPrompt) {
     }
 
     console.log("Retrieving database schema summary...");
-    const schemaSummary = await getDatabaseSchemaSummary();
+    const dbContext = await getDatabaseContext();
 
     // Construct system and user messages with the schema context.
     const systemMessage = {
       role: "system",
-      content: `Sequelize Models Summary:\n${schemaSummary}
+      content: `Sequelize Models Summary:\n${dbContext}
 You are a Sequelize expert and a database management agent.
 Convert the following natural language description into a precise Sequelize query.
 Generate a JSON object with a key "sequelizeQuery" that includes:
@@ -108,7 +109,7 @@ Example: {"sequelizeQuery": {"model": "User", "method": "findAll", "options": {"
     const queryObject = result.sequelizeQuery;
     console.log("Generated query object:", queryObject);
 
-    const queryResult = await executeSequelizeQuery(queryObject);
+    const queryResult = await executeQuery(queryObject);
     console.log("Final query result:", queryResult);
     return queryResult;
   } catch (error) {
