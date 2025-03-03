@@ -34,4 +34,16 @@ const Channel = sequelize.define(
   }
 );
 
+// Add model metadata: a general description and per-attribute descriptions.
+Channel.modelDescription =
+  "Represents a communication channel on a Discord server. This model stores key details such as the unique Discord ID, the associated server, the channel name, type, and creation date.";
+Channel.attributeDescriptions = {
+  id: "Unique identifier for the channel.",
+  discord_id: "Unique Discord identifier for the channel.",
+  fk_server_id: "Foreign key linking the channel to its server.",
+  name: "The name of the channel.",
+  channel_type: "The type of the channel (e.g., text, voice).",
+  created_at: "Timestamp indicating when the channel was created.",
+};
+
 module.exports = Channel;

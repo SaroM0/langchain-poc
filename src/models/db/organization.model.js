@@ -22,4 +22,12 @@ const Organization = sequelize.define(
   }
 );
 
+Organization.modelDescription =
+  "Represents an organization entity. This model stores the organization's name and the creation timestamp.";
+Organization.attributeDescriptions = {
+  id: "Unique identifier for the organization.",
+  name: "The name of the organization.",
+  created_at: "Timestamp indicating when the organization was created.",
+};
+
 module.exports = Organization;

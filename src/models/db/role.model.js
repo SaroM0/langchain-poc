@@ -25,4 +25,13 @@ const Role = sequelize.define(
   }
 );
 
+Role.modelDescription =
+  "Represents a role that can be assigned to users. This model stores the role's name, a description of its purpose, and the creation timestamp.";
+Role.attributeDescriptions = {
+  id: "Unique identifier for the role.",
+  name: "The name of the role.",
+  description: "A detailed description of the role and its responsibilities.",
+  created_at: "Timestamp indicating when the role was created.",
+};
+
 module.exports = Role;

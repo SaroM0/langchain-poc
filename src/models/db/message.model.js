@@ -43,4 +43,19 @@ const Message = sequelize.define(
   }
 );
 
+Message.modelDescription =
+  "Represents a message sent in a Discord channel or thread. This model captures the unique Discord message ID, the associated channel, thread, user, any parent message for replies, the message content, and its creation timestamp.";
+Message.attributeDescriptions = {
+  id: "Unique identifier for the message record.",
+  discord_id: "Unique Discord identifier for the message.",
+  fk_channel_id: "Foreign key linking the message to its channel.",
+  fk_thread_id:
+    "Foreign key linking the message to its thread (if applicable).",
+  fk_user_id: "Foreign key linking the message to the user who sent it.",
+  fk_parent_message_id:
+    "Foreign key linking the message to its parent message (for replies).",
+  content: "The textual content of the message.",
+  created_at: "Timestamp indicating when the message was created.",
+};
+
 module.exports = Message;

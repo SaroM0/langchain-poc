@@ -34,4 +34,15 @@ const Server = sequelize.define(
   }
 );
 
+Server.modelDescription =
+  "Represents a Discord server entity associated with an organization. It stores the unique Discord ID, organization reference, server name, description, and creation timestamp.";
+Server.attributeDescriptions = {
+  id: "Unique identifier for the server record.",
+  discord_id: "Unique Discord identifier for the server.",
+  fk_organization_id: "Foreign key linking the server to its organization.",
+  name: "The name of the server.",
+  description: "A brief description of the server.",
+  created_at: "Timestamp indicating when the server was created.",
+};
+
 module.exports = Server;

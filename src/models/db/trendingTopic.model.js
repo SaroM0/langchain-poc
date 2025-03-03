@@ -26,4 +26,13 @@ const TrendingTopic = sequelize.define(
   }
 );
 
+TrendingTopic.modelDescription =
+  "Represents a trending topic within a channel. This model stores the channel association, a brief description of the trending topic, and its creation timestamp.";
+TrendingTopic.attributeDescriptions = {
+  id: "Unique identifier for the trending topic record.",
+  fk_channel_id: "Foreign key linking the trending topic to its channel.",
+  description: "A brief description of the trending topic.",
+  created_at: "Timestamp indicating when the trending topic was created.",
+};
+
 module.exports = TrendingTopic;

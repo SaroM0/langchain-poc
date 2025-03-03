@@ -31,4 +31,14 @@ const MessageMention = sequelize.define(
   }
 );
 
+MessageMention.modelDescription =
+  "Represents a mention within a message. This model captures the type of mention (e.g., user, role, channel), the target identifier, and the creation timestamp, along with the associated message.";
+MessageMention.attributeDescriptions = {
+  id: "Unique identifier for the message mention record.",
+  fk_message_id: "Foreign key linking the mention to a specific message.",
+  mention_type: "The type of mention (e.g., user, role, channel).",
+  target_id: "Identifier of the target that is mentioned.",
+  created_at: "Timestamp indicating when the mention was created.",
+};
+
 module.exports = MessageMention;
