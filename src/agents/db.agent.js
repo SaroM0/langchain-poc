@@ -2,7 +2,7 @@ const { openaiChat } = require("../config/openai.config");
 const {
   getDatabaseSchemaSummary,
   executeSequelizeQuery,
-} = require("../services/db/relationalQueryAgent.service");
+} = require("../services/db/executeQuery.service");
 
 /**
  * Relational Database Management Agent.

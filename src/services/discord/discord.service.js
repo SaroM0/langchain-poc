@@ -1,11 +1,11 @@
 const client = require("../../config/discordClient");
-const { ensureOrganization } = require("./dbServices/organization.service");
-const { upsertUser } = require("./dbServices/user.service");
-const { saveServer } = require("./dbServices/server.service");
-const { saveChannel } = require("./dbServices/channel.service");
-const { saveThread } = require("./dbServices/thread.service");
-const { saveMessage } = require("./dbServices/message.service");
-const { saveRole } = require("./dbServices/role.service");
+const { ensureOrganization } = require("./discordToDb/organization.service");
+const { upsertUser } = require("./discordToDb/user.service");
+const { saveServer } = require("./discordToDb/server.service");
+const { saveChannel } = require("./discordToDb/channel.service");
+const { saveThread } = require("./discordToDb/thread.service");
+const { saveMessage } = require("./discordToDb/message.service");
+const { saveRole } = require("./discordToDb/role.service");
 
 client.once("ready", async () => {
   try {
