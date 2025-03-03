@@ -4,7 +4,7 @@ const {
   generateSQLQuery,
 } = require("./services/databaseService/relationalQueryAgent.service");
 const {
-  semanticQueryWithContext,
+  structureFragments,
 } = require("./services/semanticServices/semanticSearch.service");
 
 // Create an interface for reading input from the console.
@@ -37,7 +37,7 @@ rl.question("Option: ", (option) => {
     rl.question("Enter your natural language query: ", (query) => {
       rl.question("Enter channel ID: ", async (channelId) => {
         try {
-          const context = await semanticQueryWithContext(query, channelId);
+          const context = await structureFragments(query, channelId);
           console.log("\nSemantic Query Context:");
           console.log(context);
         } catch (error) {

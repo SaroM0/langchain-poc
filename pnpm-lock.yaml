@@ -35,6 +35,9 @@ importers:
       sequelize:
         specifier: ^6.37.5
         version: 6.37.5(mysql2@3.12.0)
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
 
 packages:
 
