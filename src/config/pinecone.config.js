@@ -14,12 +14,31 @@ const { Pinecone: PineconeClient } = require("@pinecone-database/pinecone");
  * @returns {Object} The initialized Pinecone index instance.
  */
 async function initPinecone(indexName) {
-  // Create a new instance of the Pinecone client
   const client = new PineconeClient();
-
-  // Return the index instance using the provided index name
   return client.Index(indexName);
 }
 
-// Export the initPinecone function for use in other modules
-module.exports = { initPinecone };
+/**
+ * Lists all indexes available in the current Pinecone environment.
+ *
+ * This function creates a new instance of the Pinecone client and retrieves a list of all index names.
+ *
+ * @returns {Promise<Array<string>>} An array with the names of the indexes.
+ */
+async function listPineconeIndexes() {
+  const client = new PineconeClient();
+  try {
+    const indexesObj = await client.listIndexes();
+    console.log("Pinecone indexes:", indexesObj);
+    if (indexesObj && Array.isArray(indexesObj.indexes)) {
+      return indexesObj.indexes.map((index) => index.name);
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error("Error listing Pinecone indexes:", error);
+    return [];
+  }
+}
+
+module.exports = { initPinecone, listPineconeIndexes };
