@@ -10,21 +10,22 @@ const { getDatabaseContext } = require("../services/db/getDbContext.service");
 const { executeQuery } = require("../services/db/executeQuery.service");
 
 // -------------------------------------------------------------------------
-// Nodo: metadataCheckNode
+// Node: metadataCheckNode
 // -------------------------------------------------------------------------
 async function metadataCheckNode(state) {
-  // Extraer la consulta del usuario (primer mensaje)
+  // Extract the user's query (first message)
   const userQuery = state.messages[0].content;
-  // Obtener el esquema completo de la base de datos
+  // Get the complete database schema summary from the loaded file
   const dbContext = await getDatabaseContext();
 
-  const prompt = `You are an expert SQL assistant. Given the following complete database schema summary:
+  const prompt = `You are an expert SQL assistant. Using only the following complete database schema summary:
 ${dbContext}
 
 And the user query:
 "${userQuery}"
 
-Determine if additional detailed metadata from any table is required to generate an accurate SQL SELECT query.
+Determine if additional detailed metadata from any table (that already exists in the provided schema) is required to generate an accurate SQL SELECT query.
+Do not invent or refer to any tables that are not present in the provided schema.
 Return your answer strictly as a JSON object with a single key "additionalTables" containing an array of table names.
 If no additional metadata is needed, return {"additionalTables": []}.`;
 
@@ -63,15 +64,16 @@ If no additional metadata is needed, return {"additionalTables": []}.`;
 }
 
 // -------------------------------------------------------------------------
-// Nodo: metadataQueryNode
+// Node: metadataQueryNode
 // -------------------------------------------------------------------------
 async function metadataQueryNode(state) {
   if (!state.additionalTables || state.additionalTables.length === 0) {
     return state;
   }
   for (const tableName of state.additionalTables) {
-    // Construir un prompt para que el modelo genere la consulta que obtenga metadata detallada de la tabla.
-    const prompt = `You are a SQL expert. Given the table "${tableName}" from the database, generate a SQL query that retrieves detailed metadata about the table (such as column names, data types, and notes). Your answer should be only the SQL query.`;
+    // Construct a prompt for the model to generate the query that retrieves detailed metadata for the table.
+    // The prompt instructs the model to use only the provided table and not invent new ones.
+    const prompt = `You are a SQL expert. Given the table "${tableName}" from the provided database schema, generate a SQL query that retrieves detailed metadata about the table (such as column names, data types, and notes). Use only the table that exists in the schema; do not invent or assume additional tables. Your answer should be only the SQL query.`;
     const response = await openaiChat.invoke(
       [{ role: "user", content: prompt }],
       {
@@ -83,17 +85,14 @@ async function metadataQueryNode(state) {
       }
     );
     const metadataSqlQuery = response.content.trim();
-    console.log(
-      `[metadataQueryNode] Generated metadata query for ${tableName}: ${metadataSqlQuery}`
-    );
-    // Ejecutar la consulta para obtener la metadata.
+    // Execute the query to obtain the metadata.
     let metadataResult;
     try {
       metadataResult = await executeQuery({ sqlQuery: metadataSqlQuery });
     } catch (error) {
       metadataResult = `Error retrieving metadata for ${tableName}: ${error.message}`;
     }
-    // Agregar la metadata al estado.
+    // Append the metadata to the state.
     state.messages.push(
       new AIMessage(
         `Metadata for ${tableName}: ${JSON.stringify(metadataResult)}`
@@ -106,17 +105,16 @@ async function metadataQueryNode(state) {
 }
 
 // -------------------------------------------------------------------------
-// Nodo: sqlAgentNode
+// Node: sqlAgentNode
 // -------------------------------------------------------------------------
 async function sqlAgentNode(state) {
-  // Extraer la consulta del usuario (primer mensaje)
+  // Extract the user's query (first message)
   const userQuery = state.messages[0].content;
-  console.log("[sqlAgentNode] Received user query:", userQuery);
 
-  // Obtener el esquema completo
+  // Get the complete schema from the loaded file
   const dbContext = await getDatabaseContext();
 
-  // Concatenar cualquier metadata adicional (mensajes que comienzan con "Metadata for")
+  // Concatenate any additional metadata (messages starting with "Metadata for")
   let metadataContext = "";
   for (const msg of state.messages) {
     if (msg.content.startsWith("Metadata for")) {
@@ -124,24 +122,34 @@ async function sqlAgentNode(state) {
     }
   }
 
-  // Construir el prompt final para generar la consulta SQL compleja
+  // Include any error context from previous failed attempts
+  let errorContext = "";
+  for (const msg of state.messages) {
+    if (msg.content.startsWith("Error executing SQL query:")) {
+      errorContext += msg.content + "\n";
+    }
+  }
+
   const systemMessage = {
     role: "system",
     content: `Database Schema Summary:
-  ${dbContext}
-  
-  ${metadataContext}
-  
-  You are a SQL expert with deep knowledge of MySQL. Your task is to convert the following natural language description into a precise, syntactically correct raw SQL SELECT query for MySQL.
-  Guidelines:
-  1. The query must be a valid SELECT query that only retrieves data.
-  2. Use appropriate clauses for filtering, grouping, ordering, and pagination as needed.
-  3. Use the schema summary above and any additional metadata to determine which tables and columns are relevant.
-  4. To avoid syntax errors, enclose table names and column names in backticks (\`) when necessary (e.g., \`user\`, \`Message\`).
-  5. Your answer must be a valid JSON object with a single key "sqlQuery", whose value is the raw SQL query.
-  Example:
-  {"sqlQuery": "SELECT \`User\`.id, COUNT(\`Message\`.id) AS messageCount FROM \`User\` JOIN \`Message\` ON \`User\`.id = \`Message\`.userId GROUP BY \`User\`.id ORDER BY messageCount DESC LIMIT 5"}
-  Your answer must be a valid JSON object only (no extra text).`,
+${dbContext}
+
+${metadataContext}
+
+${errorContext}
+
+You are a SQL expert with deep knowledge of MySQL. Your task is to convert the following natural language description into a precise, syntactically correct raw SQL SELECT query for MySQL.
+Important: Only use the tables and columns provided in the schema summary above. Do not invent or create any new tables.
+Guidelines:
+1. The query must be a valid SELECT query that only retrieves data.
+2. Use appropriate clauses for filtering, grouping, ordering, and pagination as needed.
+3. Use the schema summary above and any additional metadata to determine which tables and columns are relevant.
+4. To avoid syntax errors, enclose table names and column names in backticks (\`) when necessary (e.g., \`user\`, \`Message\`).
+5. Your answer must be a valid JSON object with a single key "sqlQuery", whose value is the raw SQL query.
+Example:
+{"sqlQuery": "SELECT \`User\`.id, COUNT(\`Message\`.id) AS messageCount FROM \`User\` JOIN \`Message\` ON \`User\`.id = \`Message\`.userId GROUP BY \`User\`.id ORDER BY messageCount DESC LIMIT 5"}
+Your answer must be a valid JSON object only (no extra text).`,
   };
 
   const userMessage = {
@@ -182,20 +190,53 @@ async function sqlAgentNode(state) {
 }
 
 // -------------------------------------------------------------------------
-// Nodo: executeSQLTool
+// Node: executeSQLTool
 // -------------------------------------------------------------------------
 async function executeSQLTool(state) {
   const lastMessage = state.messages[state.messages.length - 1];
   const sqlQuery = lastMessage.content;
   console.log("[executeSQLTool] Executing SQL query:", sqlQuery);
-  const result = await executeQuery({ sqlQuery });
-  console.log("[executeSQLTool] Query execution result:", result);
-  state.messages.push(new AIMessage(JSON.stringify(result)));
-  return state;
+  try {
+    const result = await executeQuery({ sqlQuery });
+    console.log("[executeSQLTool] Query execution result:", result);
+    state.messages.push(new AIMessage(JSON.stringify(result)));
+    return state;
+  } catch (error) {
+    console.log("[executeSQLTool] Error executing SQL query:", error);
+    // Append error message to state
+    state.messages.push(
+      new AIMessage(`Error executing SQL query: ${error.message}`)
+    );
+    // Initialize retry count if not present
+    if (!state.retryCount) {
+      state.retryCount = 0;
+    }
+    // Retry up to 3 times
+    if (state.retryCount < 3) {
+      state.retryCount++;
+      // Add a new HumanMessage with the error context to ask for a revised query
+      state.messages.push(
+        new HumanMessage(
+          `The previous SQL query failed with error: ${error.message}. Please generate a new query considering this error, and only use the tables provided in the schema.`
+        )
+      );
+      // Re-run the SQL generation node to obtain a new query
+      const newState = await sqlAgentNode(state);
+      // Attempt to execute the new query
+      return await executeSQLTool(newState);
+    } else {
+      state.messages.push(
+        new AIMessage(
+          "Maximum retry attempts reached. Query execution aborted."
+        )
+      );
+      return state;
+    }
+  }
 }
 
 // -------------------------------------------------------------------------
-// Construcción del StateGraph del agente
+// Construct the StateGraph of the agent
 // -------------------------------------------------------------------------
 const sqlAgentStateGraph = new StateGraph(
   Annotation.Root({
@@ -212,13 +253,13 @@ const sqlAgentStateGraph = new StateGraph(
   .addEdge("agent", "execute");
 
 // -------------------------------------------------------------------------
-// Guardar el estado en memoria y compilar el StateGraph
+// Save state in memory and compile the StateGraph
 // -------------------------------------------------------------------------
 const checkpointer = new MemorySaver();
 const sqlAgent = sqlAgentStateGraph.compile({ checkpointer });
 
 // -------------------------------------------------------------------------
-// Función de conveniencia para invocar el agente SQL
+// Convenience function to invoke the SQL agent
 // -------------------------------------------------------------------------
 async function invokeSQLAgent(query, config = {}) {
   const initialState = { messages: [new HumanMessage(query)] };

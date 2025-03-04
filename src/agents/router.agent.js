@@ -57,27 +57,18 @@ Return only the refined query as plain text.`;
 // 3. Utility function that decides the query nature
 // --------------------------------------------------
 async function decideQueryNature(query) {
-  console.log("[decideQueryNature] Received query:", query);
-
   const decisionPrompt = `You are a router agent. Analyze the following query and decide if it is:
-- quantitative (requiring numerical, aggregated data and names),
-- semantic (requiring contextual, descriptive information), or
-- hybrid (requiring both types of information).
+- quantitative (requiring numerical, aggregated data that can be obtained from the db tables eg. names, numbers, counts, times),
+- semantic (requiring contextual, descriptive information such as emotions, attitudes, and similar aspects), or
+- hybrid (requiring a combination of both types of information).
 
 Query: "${query}"
 
 Return your answer strictly as a JSON object with a key "choice" whose value is one of "quantitative", "semantic", or "hybrid".`;
 
-  console.log("[decideQueryNature] Calling openaiChat with prompt:");
-  console.log(decisionPrompt);
-
   const decisionResponse = await openaiChat.call([
     new HumanMessage(decisionPrompt),
   ]);
-  console.log(
-    "[decideQueryNature] Model response content:",
-    decisionResponse.content
-  );
 
   try {
     const parsed = JSON.parse(decisionResponse.content);
@@ -142,7 +133,6 @@ ${semanticResult}
 
 Final Analysis: The above information, combining both numerical data and contextual insights, identifies the key channels and users with positive and participative activity.`;
 
-  console.log("[routeDecision] Combined Result:", combined);
   return JSON.stringify({ combinedResult: combined });
 }
 
@@ -177,9 +167,7 @@ const model = openaiChat.bindTools(tools);
 // 8. Node that calls the model with the current conversation messages
 // --------------------------------------------------
 async function callModel(state) {
-  console.log("[callModel] Invoked with state.messages:", state.messages);
   const response = await model.invoke(state.messages);
-  console.log("[callModel] Model response:", response);
   return { messages: [response] };
 }
 
@@ -190,16 +178,13 @@ function shouldContinue(state) {
   console.log("[shouldContinue] Checking if further tool calls are needed.");
   const { messages } = state;
   const lastMessage = messages[messages.length - 1];
-  console.log("[shouldContinue] Last message:", lastMessage);
 
   const isAI = lastMessage?._getType?.() === "ai";
   const calls = lastMessage?.additional_kwargs?.tool_calls;
 
   if (isAI && Array.isArray(calls) && calls.length > 0) {
-    console.log("[shouldContinue] Detected tool calls:", calls);
     return "tools";
   }
-  console.log("[shouldContinue] No tool calls detected. Ending conversation.");
   return "__end__";
 }
 
@@ -227,17 +212,8 @@ const app = workflow.compile({ checkpointer });
 // 13. Convenience function to invoke the router
 // --------------------------------------------------
 export async function invokeRouter(query, config = {}) {
-  console.log("[invokeRouter] Received query:", query);
-  console.log("[invokeRouter] Received config:", config);
-
   const messages = [new HumanMessage(query)];
-
-  console.log("[invokeRouter] Invoking state graph with initial messages...");
   const finalState = await app.invoke({ messages }, { configurable: config });
-
-  console.log("[invokeRouter] Final state messages:", finalState.messages);
   const finalMessage = finalState.messages[finalState.messages.length - 1];
-  console.log("[invokeRouter] Final message content:", finalMessage.content);
-
   return finalMessage.content;
 }

@@ -19,6 +19,32 @@ console.log("1: Generate and Execute DB Agent Query (SQL Agent)");
 console.log("2: Semantic Search (Semantic Agent)");
 console.log("3: Route Query via Router Agent");
 
+// Function to keep the router conversation active
+function startRouterConversation() {
+  rl.question(
+    "Enter your natural language query (or type 'exit' to quit): ",
+    async (query) => {
+      if (query.trim().toLowerCase() === "exit") {
+        console.log("Ending conversation.");
+        return rl.close();
+      }
+      try {
+        const config = {
+          channel_id: "default_channel",
+          thread_id: "router-thread-001",
+        };
+        const result = await invokeRouter(query, config);
+        console.log("\nRouter Agent Query Result:");
+        console.log(result);
+      } catch (error) {
+        console.error("Error in router agent query:", error);
+      }
+      // Continue the conversation by recursively calling the function
+      startRouterConversation();
+    }
+  );
+}
+
 rl.question("Option: ", (option) => {
   if (option.trim() === "1") {
     // Option 1: Use the SQL Agent to generate and execute a raw SQL query.
@@ -47,22 +73,8 @@ rl.question("Option: ", (option) => {
       }
     });
   } else if (option.trim() === "3") {
-    // Option 3: Use the Router Agent to decide which agent to invoke.
-    rl.question("Enter your natural language query: ", async (query) => {
-      try {
-        const config = {
-          channel_id: "default_channel",
-          thread_id: "router-thread-001",
-        };
-        const result = await invokeRouter(query, config);
-        console.log("\nRouter Agent Query Result:");
-        console.log(result);
-      } catch (error) {
-        console.error("Error in router agent query:", error);
-      } finally {
-        rl.close();
-      }
-    });
+    // Option 3: Start a persistent conversation with the Router Agent.
+    startRouterConversation();
   } else {
     console.log("Invalid option");
     rl.close();
