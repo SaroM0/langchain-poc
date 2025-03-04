@@ -1,4 +1,4 @@
-import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { StateGraph } from "@langchain/langgraph";
@@ -10,7 +10,7 @@ import {
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 
 import { invokeSQLAgent } from "./db.agent.js";
-import { invokeSemanticAgent } from "./semanticAgent.js"; // Importamos el Semantic Agent
+import { invokeSemanticAgent } from "./semantic.agent.js";
 import { openaiChat } from "../config/openai.config.js";
 
 // --------------------------------------------------
@@ -23,14 +23,44 @@ const StateAnnotation = Annotation.Root({
 });
 
 // --------------------------------------------------
-// 2. Utility function that decides the query nature
+// 2. Functions to generate specialized queries dynamically
+// --------------------------------------------------
+async function getQuantitativeQuery(query) {
+  const prompt = `You are a SQL expert specialized in quantitative analysis. 
+Given the following user query:
+"${query}"
+Generate a refined quantitative query that instructs the DB agent to return channel names and user names representing the most active and positive participants.
+Return only the refined query as plain text.`;
+
+  const response = await openaiChat.invoke([new HumanMessage(prompt)], {
+    model: "o3-mini",
+    max_tokens: 500,
+  });
+  return response.content.trim();
+}
+
+async function getSemanticQuery(query) {
+  const prompt = `You are an expert in semantic analysis. 
+Given the following user query:
+"${query}"
+Generate a refined semantic query that instructs the Semantic agent to return descriptive insights regarding positive and energetic messages in a natural, conversational tone.
+Return only the refined query as plain text.`;
+
+  const response = await openaiChat.invoke([new HumanMessage(prompt)], {
+    model: "o3-mini",
+    max_tokens: 500,
+  });
+  return response.content.trim();
+}
+
+// --------------------------------------------------
+// 3. Utility function that decides the query nature
 // --------------------------------------------------
 async function decideQueryNature(query) {
   console.log("[decideQueryNature] Received query:", query);
 
-  // Se amplía el prompt para incluir la opción "hybrid" en caso de que se requiera combinar ambas búsquedas.
   const decisionPrompt = `You are a router agent. Analyze the following query and decide if it is:
-- quantitative (requiring numerical, aggregated data),
+- quantitative (requiring numerical, aggregated data and names),
 - semantic (requiring contextual, descriptive information), or
 - hybrid (requiring both types of information).
 
@@ -44,68 +74,85 @@ Return your answer strictly as a JSON object with a key "choice" whose value is 
   const decisionResponse = await openaiChat.call([
     new HumanMessage(decisionPrompt),
   ]);
-
-  console.log("[decideQueryNature] Model response content:");
-  console.log(decisionResponse.content);
+  console.log(
+    "[decideQueryNature] Model response content:",
+    decisionResponse.content
+  );
 
   try {
     const parsed = JSON.parse(decisionResponse.content);
     console.log("[decideQueryNature] Parsed decision:", parsed);
     return parsed;
   } catch (err) {
-    console.warn(
-      "[decideQueryNature] JSON parse failed, defaulting to hybrid."
-    );
+    console.warn("[decideQueryNature] Parsing failed. Defaulting to hybrid.");
     return { choice: "hybrid" };
   }
 }
 
 // --------------------------------------------------
-// 3. Routing logic (a tool) that calls the correct backend(s)
+// 4. Routing logic that directs the query to the appropriate backend(s)
 // --------------------------------------------------
 async function routeDecision({ query, channel_id }) {
-  console.log("[routeDecision] Started routing logic.");
-  console.log("[routeDecision] query:", query, "channel_id:", channel_id);
+  console.log("[routeDecision] Routing started.");
+  console.log("[routeDecision] Query:", query, "Channel ID:", channel_id);
 
   const decision = await decideQueryNature(query);
-  console.log("[routeDecision] Router Decision:", decision);
+  console.log("[routeDecision] Query type determined:", decision.choice);
 
   let quantitativeResult = "";
   let semanticResult = "";
 
-  // Según el tipo de consulta, se delega a uno o a ambos agentes.
   if (decision.choice === "quantitative") {
-    console.log("[routeDecision] Sending query to invokeSQLAgent...");
-    quantitativeResult = await invokeSQLAgent(query);
-  } else if (decision.choice === "semantic") {
-    console.log("[routeDecision] Sending query to invokeSemanticAgent...");
-    semanticResult = await invokeSemanticAgent(query, { channel_id });
-  } else if (decision.choice === "hybrid") {
+    const refinedQuantQuery = await getQuantitativeQuery(query);
     console.log(
-      "[routeDecision] Hybrid query detected. Invoking both agents..."
+      "[routeDecision] Quantitative query refined:",
+      refinedQuantQuery
     );
-    quantitativeResult = await invokeSQLAgent(query);
-    semanticResult = await invokeSemanticAgent(query, { channel_id });
+    quantitativeResult = await invokeSQLAgent(refinedQuantQuery);
+  } else if (decision.choice === "semantic") {
+    const refinedSemQuery = await getSemanticQuery(query);
+    console.log("[routeDecision] Semantic query refined:", refinedSemQuery);
+    semanticResult = await invokeSemanticAgent(refinedSemQuery, { channel_id });
+  } else if (decision.choice === "hybrid") {
+    const refinedQuantQuery = await getQuantitativeQuery(query);
+    const refinedSemQuery = await getSemanticQuery(query);
+    console.log(
+      "[routeDecision] Hybrid queries refined:",
+      refinedQuantQuery,
+      refinedSemQuery
+    );
+    quantitativeResult = await invokeSQLAgent(refinedQuantQuery);
+    semanticResult = await invokeSemanticAgent(refinedSemQuery, { channel_id });
   } else {
-    console.log("[routeDecision] Unknown query type. Defaulting to hybrid.");
-    quantitativeResult = await invokeSQLAgent(query);
-    semanticResult = await invokeSemanticAgent(query, { channel_id });
+    const refinedQuantQuery = await getQuantitativeQuery(query);
+    const refinedSemQuery = await getSemanticQuery(query);
+    console.log(
+      "[routeDecision] Unknown query type. Defaulting to hybrid queries."
+    );
+    quantitativeResult = await invokeSQLAgent(refinedQuantQuery);
+    semanticResult = await invokeSemanticAgent(refinedSemQuery, { channel_id });
   }
 
-  // Combina ambos resultados en una respuesta final natural.
-  const combined = `Quantitative Result:\n${quantitativeResult}\n\nSemantic Result:\n${semanticResult}\n\nCombined Analysis: Based on both the aggregated data and the contextual insights, these are the final findings.`;
+  // Combine the results into a consolidated response (using names, not IDs)
+  const combined = `Quantitative Data:
+${quantitativeResult}
+
+Semantic Insights:
+${semanticResult}
+
+Final Analysis: The above information, combining both numerical data and contextual insights, identifies the key channels and users with positive and participative activity.`;
 
   console.log("[routeDecision] Combined Result:", combined);
   return JSON.stringify({ combinedResult: combined });
 }
 
 // --------------------------------------------------
-// 4. Create a tool definition wrapping `routeDecision`
+// 5. Create a tool definition wrapping routeDecision
 // --------------------------------------------------
 const routeDecisionTool = tool(routeDecision, {
   name: "routeTool",
   description:
-    "Routes a user query to the DB agent (for quantitative info) and/or the semantic agent (for descriptive info) and combines the results.",
+    "Routes a user query to the DB agent (for quantitative info) and the semantic agent (for descriptive info) and combines the results.",
   schema: z.object({
     query: z.string().describe("The user's query."),
     channel_id: z
@@ -116,18 +163,18 @@ const routeDecisionTool = tool(routeDecision, {
 });
 
 // --------------------------------------------------
-// 5. Gather all tools in an array and wrap in a ToolNode
+// 6. Gather all tools in an array and wrap them in a ToolNode
 // --------------------------------------------------
 const tools = [routeDecisionTool];
 const toolNode = new ToolNode(tools);
 
 // --------------------------------------------------
-// 6. Bind your openaiChat LLM to the tools, so it can call them
+// 7. Bind openaiChat LLM to the tools so it can call them
 // --------------------------------------------------
 const model = openaiChat.bindTools(tools);
 
 // --------------------------------------------------
-// 7. Node that calls the model with current conversation
+// 8. Node that calls the model with the current conversation messages
 // --------------------------------------------------
 async function callModel(state) {
   console.log("[callModel] Invoked with state.messages:", state.messages);
@@ -137,27 +184,27 @@ async function callModel(state) {
 }
 
 // --------------------------------------------------
-// 8. Decide whether to continue to "tools" or end
+// 9. Check if further tool calls are needed or end the conversation
 // --------------------------------------------------
 function shouldContinue(state) {
-  console.log("[shouldContinue] Checking if we need to call tools...");
+  console.log("[shouldContinue] Checking if further tool calls are needed.");
   const { messages } = state;
   const lastMessage = messages[messages.length - 1];
-  console.log("[shouldContinue] lastMessage:", lastMessage);
+  console.log("[shouldContinue] Last message:", lastMessage);
 
   const isAI = lastMessage?._getType?.() === "ai";
   const calls = lastMessage?.additional_kwargs?.tool_calls;
 
   if (isAI && Array.isArray(calls) && calls.length > 0) {
-    console.log("[shouldContinue] Detected tool_calls:", calls);
+    console.log("[shouldContinue] Detected tool calls:", calls);
     return "tools";
   }
-  console.log("[shouldContinue] No tool calls. Ending conversation.");
+  console.log("[shouldContinue] No tool calls detected. Ending conversation.");
   return "__end__";
 }
 
 // --------------------------------------------------
-// 9. Build the StateGraph: agent (LLM) -> tools -> agent, etc.
+// 10. Build the StateGraph: agent (LLM) -> tools -> agent, etc.
 // --------------------------------------------------
 const workflow = new StateGraph(StateAnnotation)
   .addNode("agent", callModel)
@@ -167,17 +214,17 @@ const workflow = new StateGraph(StateAnnotation)
   .addEdge("tools", "agent");
 
 // --------------------------------------------------
-// 10. Memory saver to persist state across runs
+// 11. Memory saver to persist state across runs
 // --------------------------------------------------
 const checkpointer = new MemorySaver();
 
 // --------------------------------------------------
-// 11. Compile the graph to a Runnable
+// 12. Compile the graph to a Runnable
 // --------------------------------------------------
 const app = workflow.compile({ checkpointer });
 
 // --------------------------------------------------
-// 12. Provide a convenience function to invoke the router
+// 13. Convenience function to invoke the router
 // --------------------------------------------------
 export async function invokeRouter(query, config = {}) {
   console.log("[invokeRouter] Received query:", query);
