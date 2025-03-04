@@ -9,7 +9,7 @@ import {
 } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 
-import { databaseManagementAgent } from "./db.agent.js";
+import { invokeSQLAgent } from "./db.agent.js";
 import { structureFragments } from "../services/semantic/semanticSearch.service.js";
 import { openaiChat } from "../config/openai.config.js"; // Your custom openai chat instance
 
@@ -73,8 +73,8 @@ async function routeDecision({ query, channel_id }) {
   let result;
   if (decision.choice === "quantitative") {
     // Quantitative => DB agent
-    console.log("[routeDecision] Sending query to databaseManagementAgent...");
-    result = await databaseManagementAgent(query);
+    console.log("[routeDecision] Sending query to invokeSQLAgent...");
+    result = await invokeSQLAgent(query);
   } else {
     // Semantic => structureFragments
     console.log("[routeDecision] Sending query to structureFragments...");

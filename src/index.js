@@ -1,6 +1,7 @@
 require("dotenv").config();
 const readline = require("readline");
-const { databaseManagementAgent } = require("./agents/db.agent");
+// Importa el agente SQL stateful en lugar del antiguo databaseManagementAgent
+const { invokeSQLAgent } = require("./agents/db.agent");
 const {
   structureFragments,
 } = require("./services/semantic/semanticSearch.service");
@@ -14,16 +15,16 @@ const rl = readline.createInterface({
 
 // Display the menu options.
 console.log("Select an option:");
-console.log("1: Generate and Execute DB Agent Query");
+console.log("1: Generate and Execute DB Agent Query (SQL Agent)");
 console.log("2: Semantic Search");
 console.log("3: Route Query via Router Agent");
 
 rl.question("Option: ", (option) => {
   if (option.trim() === "1") {
-    // Option 1: Use the DB agent to generate and execute a Sequelize query from a natural language prompt.
+    // Option 1: Use the new SQL agent (invokeSQLAgent) to generate and execute a raw SQL query.
     rl.question("Enter your natural language query: ", async (query) => {
       try {
-        const result = await databaseManagementAgent(query);
+        const result = await invokeSQLAgent(query);
         console.log("\nGenerated and Executed DB Agent Query Result:");
         console.log(result);
       } catch (error) {
