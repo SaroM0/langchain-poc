@@ -39,7 +39,6 @@ function startRouterConversation() {
       } catch (error) {
         console.error("Error in router agent query:", error);
       }
-      // Continue the conversation by recursively calling the function
       startRouterConversation();
     }
   );
