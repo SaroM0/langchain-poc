@@ -5,8 +5,8 @@ const path = require("path");
 let cachedSchemaSummary = null;
 
 /**
- * Reads the database schema summary (or model summary) from the file `dbSchemaSummary.md`
- * located in the `src/config/dbContext` folder.
+ * Reads the database schema summary from the file `dbSchemaSummary.md`
+ * located in the `src/config/db` folder.
  *
  * @returns {Promise<string>} The content of the schema summary.
  */
