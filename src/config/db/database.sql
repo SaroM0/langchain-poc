@@ -5,14 +5,13 @@ DROP TABLE IF EXISTS trending_topic;
 DROP TABLE IF EXISTS message_reaction;
 DROP TABLE IF EXISTS message_attachment;
 DROP TABLE IF EXISTS message_mention;
-DROP TABLE IF EXISTS organization;
 DROP TABLE IF EXISTS message;
 DROP TABLE IF EXISTS thread;
 DROP TABLE IF EXISTS channel;
 DROP TABLE IF EXISTS channel_user;
 DROP TABLE IF EXISTS user_role;
 DROP TABLE IF EXISTS role;
-DROP TABLE IF EXISTS user;
+DROP TABLE IF EXISTS `user`;
 DROP TABLE IF EXISTS server;
 DROP TABLE IF EXISTS organization;
 
@@ -81,6 +80,7 @@ CREATE TABLE channel (
     name VARCHAR(255),
     channel_type VARCHAR(50) COMMENT 'Example: ''text'' or ''forum''',
     created_at DATETIME,
+    is_indexed BOOLEAN DEFAULT false,
     CONSTRAINT fk_channel_server FOREIGN KEY (fk_server_id)
       REFERENCES server(id)
 );
@@ -120,6 +120,7 @@ CREATE TABLE message (
     fk_parent_message_id INT,
     content TEXT,
     created_at DATETIME,
+    is_vectorized BOOLEAN DEFAULT false,
     CONSTRAINT fk_message_channel FOREIGN KEY (fk_channel_id)
       REFERENCES channel(id),
     CONSTRAINT fk_message_thread FOREIGN KEY (fk_thread_id)

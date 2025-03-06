@@ -68,6 +68,7 @@ fk_server_id int [not null, note: "FK hacia server"]
 name varchar
 channel_type varchar [note: "Ejemplo: 'text' o 'forum'"]
 created_at datetime
+is_indexed boolean [default: false, note: "Indica si el canal ya fue indexado en Pinecone"]
 }
 
 Ref: channel.fk_server_id > server.id
@@ -112,6 +113,7 @@ fk_user_id int [not null, note: "FK hacia user"]
 fk_parent_message_id int [note: "FK para indicar respuesta a otro mensaje"]
 content text
 created_at datetime
+is_vectorized boolean [default: false, note: "Indica si el mensaje ya fue vectorizado"]
 }
 
 Ref: message.fk_channel_id > channel.id
