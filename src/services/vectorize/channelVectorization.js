@@ -6,7 +6,16 @@ const {
   initPinecone,
   listPineconeIndexes,
 } = require("../../config/pinecone.config");
-const { Channel, Message, Thread, User } = require("../../models/db");
+const {
+  Channel,
+  Message,
+  Thread,
+  User,
+  UserRole,
+  Role,
+  MessageReaction,
+} = require("../../models/db");
+
 const { sleep } = require("../../utils/functionHandler");
 
 const DIMENSION = 3072;
@@ -73,18 +82,24 @@ async function createIndexForChannel(channel) {
  * Retrieves channels that have messages and creates an index for each new channel.
  * This function can be scheduled to run periodically to handle new channels.
  */
-async function createIndicesForNewChannels() {
+async function createIndicesForNewChannels(channelsList = null) {
   try {
-    // Retrieve channels that have at least one associated message.
-    const channels = await Channel.findAll({
-      include: [
-        {
-          model: Message,
-          required: true,
-        },
-      ],
-    });
-    console.log(`Found ${channels.length} channels with messages.`);
+    let channels;
+    if (channelsList && channelsList.length > 0) {
+      channels = channelsList;
+      console.log(`Received ${channels.length} channels for vectorization.`);
+    } else {
+      // Retrieve channels that have at least one associated message.
+      channels = await Channel.findAll({
+        include: [
+          {
+            model: Message,
+            required: true,
+          },
+        ],
+      });
+      console.log(`Found ${channels.length} channels with messages.`);
+    }
 
     for (const channel of channels) {
       await createIndexForChannel(channel);

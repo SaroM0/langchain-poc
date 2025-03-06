@@ -8,7 +8,5 @@ function sleep(ms) {
 }
 
 module.exports = {
-  asyncHandler,
-  logError,
   sleep,
 };
