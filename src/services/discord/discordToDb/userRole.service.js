@@ -1,13 +1,13 @@
 const UserRole = require("../../../models/db/userRole.model");
 
 async function saveUserRole(userInternalId, roleId, assignedAt) {
-  // Find or create the user-role association based on fk_user_id and fk_role_id.
+  // Se utiliza findOrCreate para crear o encontrar la asociación entre el usuario y el rol.
   const [userRole, created] = await UserRole.findOrCreate({
     where: { fk_user_id: userInternalId, fk_role_id: roleId },
     defaults: { assigned_at: assignedAt },
   });
 
-  // If the record already exists and the assigned_at date is different, update it.
+  // Si ya existía y la fecha de asignación es distinta, se actualiza.
   if (
     !created &&
     userRole.assigned_at.getTime() !== new Date(assignedAt).getTime()

@@ -1,4 +1,4 @@
--- Deshabilitar la verificación de claves foráneas para evitar errores al eliminar las tablas
+-- Disable foreign key checks to avoid errors during table drops
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS trending_topic;
@@ -10,7 +10,6 @@ DROP TABLE IF EXISTS thread;
 DROP TABLE IF EXISTS channel;
 DROP TABLE IF EXISTS channel_user;
 DROP TABLE IF EXISTS user_role;
-DROP TABLE IF EXISTS role;
 DROP TABLE IF EXISTS `user`;
 DROP TABLE IF EXISTS server;
 DROP TABLE IF EXISTS organization;
@@ -18,7 +17,7 @@ DROP TABLE IF EXISTS organization;
 SET FOREIGN_KEY_CHECKS = 1;
 
 ----------------------------------------------------
--- Creación de la nueva versión de la base de datos
+-- Create new version of the database schema
 ----------------------------------------------------
 
 -- Table ORGANIZATION
@@ -31,7 +30,7 @@ CREATE TABLE organization (
 -- Table SERVER
 CREATE TABLE server (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    discord_id BIGINT NOT NULL UNIQUE,
+    discord_id BIGINT NOT NULL UNIQUE COMMENT 'Discord-assigned identifier for the server',
     fk_organization_id INT NOT NULL,
     name VARCHAR(255),
     description VARCHAR(255),
@@ -43,11 +42,11 @@ CREATE TABLE server (
 -- Table USER
 CREATE TABLE `user` (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    discord_id BIGINT NOT NULL UNIQUE,
+    discord_id BIGINT NOT NULL UNIQUE COMMENT 'Discord-assigned identifier for the user',
     fk_server_id INT NOT NULL,
     nick VARCHAR(255),
     name VARCHAR(255),
-    joined_at DATETIME COMMENT 'Date the user joined the server',
+    joined_at DATETIME COMMENT 'Timestamp when the user joined the server',
     CONSTRAINT fk_user_server FOREIGN KEY (fk_server_id)
       REFERENCES server(id)
 );
@@ -55,6 +54,7 @@ CREATE TABLE `user` (
 -- Table ROLE
 CREATE TABLE role (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    discord_id BIGINT NOT NULL UNIQUE COMMENT 'Discord-assigned identifier for the role',
     name VARCHAR(255),
     description TEXT,
     created_at DATETIME
@@ -75,12 +75,12 @@ CREATE TABLE user_role (
 -- Table CHANNEL
 CREATE TABLE channel (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    discord_id BIGINT NOT NULL UNIQUE,
+    discord_id BIGINT NOT NULL UNIQUE COMMENT 'Discord-assigned identifier for the channel',
     fk_server_id INT NOT NULL,
     name VARCHAR(255),
-    channel_type VARCHAR(50) COMMENT 'Example: ''text'' or ''forum''',
+    channel_type VARCHAR(50) COMMENT 'Example: "text" or "forum"',
     created_at DATETIME,
-    is_indexed BOOLEAN DEFAULT false,
+    is_indexed BOOLEAN DEFAULT false COMMENT 'Indicates if the channel has been indexed in Pinecone',
     CONSTRAINT fk_channel_server FOREIGN KEY (fk_server_id)
       REFERENCES server(id)
 );
@@ -102,7 +102,7 @@ CREATE TABLE channel_user (
 CREATE TABLE thread (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fk_channel_id INT NOT NULL,
-    discord_id BIGINT NOT NULL UNIQUE,
+    discord_id BIGINT NOT NULL UNIQUE COMMENT 'Discord-assigned identifier for the thread',
     title VARCHAR(255),
     description TEXT,
     created_at DATETIME,
@@ -113,14 +113,14 @@ CREATE TABLE thread (
 -- Table MESSAGE
 CREATE TABLE message (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    discord_id BIGINT NOT NULL UNIQUE,
+    discord_id BIGINT NOT NULL UNIQUE COMMENT 'Discord-assigned identifier for the message',
     fk_channel_id INT NOT NULL,
     fk_thread_id INT,
     fk_user_id INT NOT NULL,
     fk_parent_message_id INT,
     content TEXT,
     created_at DATETIME,
-    is_vectorized BOOLEAN DEFAULT false,
+    is_vectorized BOOLEAN DEFAULT false COMMENT 'Indicates if the message has been vectorized',
     CONSTRAINT fk_message_channel FOREIGN KEY (fk_channel_id)
       REFERENCES channel(id),
     CONSTRAINT fk_message_thread FOREIGN KEY (fk_thread_id)
@@ -146,7 +146,7 @@ CREATE TABLE message_reaction (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fk_message_id INT NOT NULL,
     fk_user_id INT NOT NULL,
-    reaction_type VARCHAR(50) COMMENT 'For example, ''like'', ''love'', ''smile'', etc.',
+    reaction_type VARCHAR(50) COMMENT 'For example, "like", "love", "smile", etc.',
     created_at DATETIME,
     CONSTRAINT fk_message_reaction_message FOREIGN KEY (fk_message_id)
       REFERENCES message(id),
@@ -168,8 +168,8 @@ CREATE TABLE trending_topic (
 CREATE TABLE message_mention (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fk_message_id INT NOT NULL,
-    mention_type VARCHAR(50) NOT NULL COMMENT 'Type of mention: ''user'', ''role'', ''here'' or ''all''',
-    target_id BIGINT COMMENT 'If mention_type is ''user'' or ''role'', this field stores the corresponding ID; for ''here'' or ''all'' it is NULL',
+    mention_type VARCHAR(50) NOT NULL COMMENT 'Type of mention: "user", "role", "here", or "all"',
+    target_id BIGINT COMMENT 'If mention_type is "user" or "role", this field stores the corresponding ID; for "here" or "all" it is NULL',
     created_at DATETIME,
     CONSTRAINT fk_message_mention_message FOREIGN KEY (fk_message_id)
       REFERENCES message(id)

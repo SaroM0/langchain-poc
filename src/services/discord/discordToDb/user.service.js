@@ -5,7 +5,8 @@ async function upsertUser(
   discordUserId,
   serverInternalId,
   globalUserName,
-  serverNickname
+  serverNickname,
+  joinedAt
 ) {
   // Se realiza el upsert basándonos en el discord_id.
   await User.upsert({
@@ -13,6 +14,7 @@ async function upsertUser(
     fk_server_id: serverInternalId,
     name: globalUserName,
     nick: serverNickname,
+    joined_at: joinedAt,
   });
   // Buscar el registro para retornar su ID interno.
   const userRecord = await User.findOne({
