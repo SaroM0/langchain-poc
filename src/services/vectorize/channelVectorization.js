@@ -109,14 +109,9 @@ async function createIndicesForNewChannels(channelsList = null) {
   }
 }
 
-/**
- * Processes messages for a given channel by generating embeddings and upserting them into the corresponding Pinecone index.
- * This function can be called to vectorize all messages or solo los mensajes nuevos que aún no fueron procesados.
- * @param {Object} channel - The channel object.
- */
 async function processChannelMessages(channel) {
   try {
-    // Retrieve messages for the channel with associated User (including UserRoles and Role), Thread, and MessageReaction.
+    // Recuperar mensajes para el canal con asociaciones relevantes.
     const messages = await Message.findAll({
       where: { fk_channel_id: channel.id },
       include: [
@@ -141,11 +136,15 @@ async function processChannelMessages(channel) {
         },
         {
           model: MessageReaction,
-          attributes: ["id"], // Only needed for counting reactions.
+          attributes: ["id"],
         },
       ],
       order: [["created_at", "ASC"]],
     });
+
+    console.log(
+      `Processing messages for channel "${channel.name}" (id ${channel.id})... Found ${messages.length} messages.`
+    );
 
     if (!messages || messages.length === 0) {
       console.log(
@@ -154,21 +153,29 @@ async function processChannelMessages(channel) {
       return;
     }
 
-    const embeddingsData = [];
+    // Inicializar el índice de Pinecone para este canal.
+    const indexName = `channel-${channel.id}`;
+    const index = await initPinecone(indexName);
 
     for (const message of messages) {
-      // Skip empty messages.
+      // Verificar si el mensaje ya fue vectorizado (asumiendo que message.is_vectorized existe).
+      if (message.is_vectorized) {
+        console.log(`Message ${message.id} is already vectorized. Skipping.`);
+        continue;
+      }
+
+      // Omitir mensajes vacíos.
       if (!message.content || message.content.trim() === "") continue;
 
       let text = message.content;
-      // If the message is part of a thread, prepend the thread title for context.
+      // Si el mensaje pertenece a un thread, agregar el título del thread para contexto.
       if (message.Thread && message.Thread.id) {
         text = `[Thread: ${message.Thread.title}] ${text}`;
       }
 
       let embedding;
       try {
-        // Generate the embedding using LangChain's OpenAI embeddings.
+        // Generar el embedding utilizando la API de embeddings (por ejemplo, de OpenAI).
         embedding = await openaiEmbeddings.embedQuery(text);
       } catch (error) {
         console.warn(
@@ -177,6 +184,10 @@ async function processChannelMessages(channel) {
         continue;
       }
 
+      console.log(
+        `Generated embedding for message ${message.id} in channel "${channel.name}". Embedding length: ${embedding.length}`
+      );
+
       if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
         console.warn(
           `Skipping message ${message.id} because embedding is invalid or empty.`
@@ -184,10 +195,10 @@ async function processChannelMessages(channel) {
         continue;
       }
 
-      // Convert created_at to a numeric timestamp.
+      // Convertir created_at a timestamp numérico.
       const createdAtNumber = new Date(message.created_at).getTime();
 
-      // Retrieve all roles associated with the user.
+      // Extraer roles asociados al usuario.
       let userRoles = [];
       if (
         message.User &&
@@ -199,14 +210,14 @@ async function processChannelMessages(channel) {
         ).filter(Boolean);
       }
 
-      // Count the number of reactions for the message.
+      // Contar las reacciones del mensaje.
       const numberOfReactions = message.MessageReactions
         ? message.MessageReactions.length
         : 0;
 
-      // Prepare the data for upsert into Pinecone.
-      embeddingsData.push({
-        id: message.discord_id.toString(), // Use the Discord message ID as the vector identifier.
+      // Preparar el objeto vector para upsert en Pinecone.
+      const vector = {
+        id: message.discord_id.toString(), // Usar el ID de Discord como identificador del vector.
         values: embedding,
         metadata: {
           discord_id: message.discord_id,
@@ -223,30 +234,24 @@ async function processChannelMessages(channel) {
           user_role: userRoles,
           number_of_reactions: numberOfReactions,
         },
-      });
+      };
+
+      // Upsert inmediato en Pinecone.
+      try {
+        console.log(
+          `Upserting embedding for message ${message.id} into Pinecone index "${indexName}".`
+        );
+        // Se envuelve el vector en un arreglo, ya que la función upsert espera una lista.
+        await index.upsert([vector], "");
+        // Marcar el mensaje como vectorizado (aquí se asume que message.is_vectorized existe y se actualiza en memoria; opcionalmente, actualizar la DB).
+        message.is_vectorized = true;
+      } catch (error) {
+        console.error(
+          `Error upserting message ${message.id} into Pinecone: ${error.message}`
+        );
+      }
     }
 
-    if (embeddingsData.length === 0) {
-      console.log(
-        `No valid embeddings generated for channel "${channel.name}".`
-      );
-      return;
-    }
-
-    const indexName = `channel-${channel.id}`;
-    // Initialize the Pinecone index instance.
-    const index = await initPinecone(indexName);
-
-    // Split the embeddings data into batches to avoid payload limits.
-    const batches = chunkArray(embeddingsData, 100);
-    for (const [i, batch] of batches.entries()) {
-      console.log(
-        `Upserting batch ${i + 1} of ${batches.length} for channel "${
-          channel.name
-        }"...`
-      );
-      await index.upsert(batch, "");
-    }
     console.log(`Finished upserting messages for channel "${channel.name}".`);
   } catch (error) {
     console.error(
