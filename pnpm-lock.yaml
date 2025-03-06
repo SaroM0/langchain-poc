@@ -13,25 +13,28 @@ importers:
     dependencies:
       '@langchain/core':
         specifier: ^0.3.41
-        version: 0.3.41(openai@4.85.4(zod@3.24.2))
+        version: 0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
       '@langchain/langgraph':
         specifier: ^0.2.51
-        version: 0.2.51(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))
+        version: 0.2.51(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))
       '@langchain/openai':
         specifier: ^0.4.4
-        version: 0.4.4(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))
+        version: 0.4.4(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))(ws@8.18.1)
       '@langchain/pinecone':
         specifier: ^0.2.0
-        version: 0.2.0(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))(@pinecone-database/pinecone@5.0.2)
+        version: 0.2.0(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))(@pinecone-database/pinecone@5.0.2)
       '@pinecone-database/pinecone':
         specifier: ^5.0.2
         version: 5.0.2
+      discord.js:
+        specifier: ^14.18.0
+        version: 14.18.0
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7
       langchain:
         specifier: ^0.3.19
-        version: 0.3.19(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))(openai@4.85.4(zod@3.24.2))
+        version: 0.3.19(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))(openai@4.85.4(ws@8.18.1)(zod@3.24.2))(ws@8.18.1)
       mysql2:
         specifier: ^3.12.0
         version: 3.12.0
@@ -46,6 +49,34 @@ packages:
 
   '@cfworker/json-schema@4.1.1':
     resolution: {integrity: sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og==}
+
+  '@discordjs/builders@1.10.1':
+    resolution: {integrity: sha512-OWo1fY4ztL1/M/DUyRPShB4d/EzVfuUvPTRRHRIt/YxBrUYSz0a+JicD5F5zHFoNs2oTuWavxCOVFV1UljHTng==}
+    engines: {node: '>=16.11.0'}
+
+  '@discordjs/collection@1.5.3':
+    resolution: {integrity: sha512-SVb428OMd3WO1paV3rm6tSjM4wC+Kecaa1EUGX7vc6/fddvw/6lg90z4QtCqm21zvVe92vMMDt9+DkIvjXImQQ==}
+    engines: {node: '>=16.11.0'}
+
+  '@discordjs/collection@2.1.1':
+    resolution: {integrity: sha512-LiSusze9Tc7qF03sLCujF5iZp7K+vRNEDBZ86FT9aQAv3vxMLihUvKvpsCWiQ2DJq1tVckopKm1rxomgNUc9hg==}
+    engines: {node: '>=18'}
+
+  '@discordjs/formatters@0.6.0':
+    resolution: {integrity: sha512-YIruKw4UILt/ivO4uISmrGq2GdMY6EkoTtD0oS0GvkJFRZbTSdPhzYiUILbJ/QslsvC9H9nTgGgnarnIl4jMfw==}
+    engines: {node: '>=16.11.0'}
+
+  '@discordjs/rest@2.4.3':
+    resolution: {integrity: sha512-+SO4RKvWsM+y8uFHgYQrcTl/3+cY02uQOH7/7bKbVZsTfrfpoE62o5p+mmV+s7FVhTX82/kQUGGbu4YlV60RtA==}
+    engines: {node: '>=18'}
+
+  '@discordjs/util@1.1.1':
+    resolution: {integrity: sha512-eddz6UnOBEB1oITPinyrB2Pttej49M9FZQY8NxgEvc3tq6ZICZ19m70RsmzRdDHk80O9NoYN/25AqJl8vPVf/g==}
+    engines: {node: '>=18'}
+
+  '@discordjs/ws@1.2.1':
+    resolution: {integrity: sha512-PBvenhZG56a6tMWF/f4P6f4GxZKJTBG95n7aiGSPTnodmz4N5g60t79rSIAq7ywMbv8A4jFtexMruH+oe51aQQ==}
+    engines: {node: '>=16.11.0'}
 
   '@langchain/core@0.3.41':
     resolution: {integrity: sha512-e/vOyfBxH6Wf2iWvQTecfnkTLGyy6QMTjHgRdU89d3+cHHnNURRCjFbq0dOLWqxnW3eWbXkmNhf3MauRDM+zbQ==}
@@ -97,6 +128,18 @@ packages:
     resolution: {integrity: sha512-4Nd6sA/Ds81hem59TWYKkAR/R9cOnYMGDZvkxpay5R2dalCN979353V5Y+zFw8I+Rmi6yi3MsVjg6ls0/EXwCw==}
     engines: {node: '>=18.0.0'}
 
+  '@sapphire/async-queue@1.5.5':
+    resolution: {integrity: sha512-cvGzxbba6sav2zZkH8GPf2oGk9yYoD5qrNWdu9fRehifgnFZJMV+nuy2nON2roRO4yQQ+v7MK/Pktl/HgfsUXg==}
+    engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
+
+  '@sapphire/shapeshift@4.0.0':
+    resolution: {integrity: sha512-d9dUmWVA7MMiKobL3VpLF8P2aeanRTu6ypG2OIaEv/ZHH/SUQ2iHOVyi5wAPjQ+HmnMuL0whK9ez8I/raWbtIg==}
+    engines: {node: '>=v16'}
+
+  '@sapphire/snowflake@3.5.3':
+    resolution: {integrity: sha512-jjmJywLAFoWeBi1W7994zZyiNWPIiqRRNAmSERxyg93xRGzNYvGjlZ0gR6x0F4gPRi2+0O6S71kOZYyr3cxaIQ==}
+    engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
+
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
 
@@ -120,6 +163,13 @@ packages:
 
   '@types/validator@13.12.2':
     resolution: {integrity: sha512-6SlHBzUW8Jhf3liqrGGXyTJSIFe4nqlJ5A5KaMZ2l/vbM3Wh3KSybots/wfWVzNLK4D1NZluDlSQIbIEPx6oyA==}
+
+  '@types/ws@8.18.0':
+    resolution: {integrity: sha512-8svvI3hMyvN0kKCJMvTJP/x6Y/EoQbepff882wL+Sn5QsXb3etnamgrJq4isrBxSJj5L2AuXcI0+bgkoAXGUJw==}
+
+  '@vladfrangu/async_event_emitter@2.4.6':
+    resolution: {integrity: sha512-RaI5qZo6D2CVS6sTHFKg1v5Ohq/+Bo2LZ5gzUEwZ/WkHhwtGTCB/sVLw8ijOkAUxasZ+WshN/Rzj4ywsABJ5ZA==}
+    engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -197,6 +247,13 @@ packages:
     resolution: {integrity: sha512-HVQE3AAb/pxF8fQAoiqpvg9i3evqug3hoiwakOyZAwJm+6vZehbkYXZ0l4JxS+I3QxM97v5aaRNhj8v5oBhekw==}
     engines: {node: '>=0.10'}
 
+  discord-api-types@0.37.119:
+    resolution: {integrity: sha512-WasbGFXEB+VQWXlo6IpW3oUv73Yuau1Ig4AZF/m13tXcTKnMpc/mHjpztIlz4+BM9FG9BHQkEXiPto3bKduQUg==}
+
+  discord.js@14.18.0:
+    resolution: {integrity: sha512-SvU5kVUvwunQhN2/+0t55QW/1EHfB1lp0TtLZUSXVHDmyHTrdOj5LRKdR0zLcybaA15F+NtdWuWmGOX9lE+CAw==}
+    engines: {node: '>=18'}
+
   dotenv@16.4.7:
     resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
     engines: {node: '>=12'}
@@ -230,6 +287,9 @@ packages:
 
   eventemitter3@4.0.7:
     resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
+
+  fast-deep-equal@3.1.3:
+    resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
   flat@5.0.2:
     resolution: {integrity: sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==}
@@ -371,6 +431,9 @@ packages:
       openai:
         optional: true
 
+  lodash.snakecase@4.1.1:
+    resolution: {integrity: sha512-QZ1d4xoBHYUeuouhEq3lk3Uq7ldgyFXGBhg04+oRLnIz8o9T65Eh+8YdroUwn846zchkA9yDsDl5CVVaV2nqYw==}
+
   lodash@4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
 
@@ -384,6 +447,9 @@ packages:
   lru.min@1.1.1:
     resolution: {integrity: sha512-FbAj6lXil6t8z4z3j0E5mfRlPzxkySotzUHwRXjlpRh10vc6AI6WN62ehZj82VG7M20rqogJ0GLwar2Xa05a8Q==}
     engines: {bun: '>=1.0.0', deno: '>=1.30.0', node: '>=8.0.0'}
+
+  magic-bytes.js@1.10.0:
+    resolution: {integrity: sha512-/k20Lg2q8LE5xiaaSkMXk4sfvI+9EGEykFS4b0CHHGWqDYU0bGUFSwchNOMA56D7TCs9GwVTkqe9als1/ns8UQ==}
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -542,8 +608,18 @@ packages:
     resolution: {integrity: sha512-l7FvfAHlcmulp8kr+flpQZmVwtu7nfRV7NZujtN0OqES8EL4O4e0qqzL0DC5gAvx/ZC/9lk6rhcUwYvkBnBnYA==}
     engines: {node: '>=12'}
 
+  ts-mixer@6.0.4:
+    resolution: {integrity: sha512-ufKpbmrugz5Aou4wcr5Wc1UUFWOLhq+Fm6qa6P0w0K5Qw2yhaUoiWszhCVuNQyNwrlGiscHOmqYoAox1PtvgjA==}
+
+  tslib@2.8.1:
+    resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
+
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
+
+  undici@6.21.1:
+    resolution: {integrity: sha512-q/1rj5D0/zayJB2FraXdaWxbhWiNKDvu8naDT2dl1yTlvJp4BLtOcp2a5BvgGNQpYYJzau7tf1WgKv3b+7mqpQ==}
+    engines: {node: '>=18.17'}
 
   uuid@10.0.0:
     resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
@@ -576,6 +652,18 @@ packages:
   wkx@0.5.0:
     resolution: {integrity: sha512-Xng/d4Ichh8uN4l0FToV/258EjMGU9MGcA0HV2d9B/ZpZB3lqQm7nkOdZdm5GhKtLLhAE7PiVQwN4eN+2YJJUg==}
 
+  ws@8.18.1:
+    resolution: {integrity: sha512-RKW2aJZMXeMxVpnZ6bck+RswznaxmzdULiBr6KY7XkTnW8uvt0iT9H5DkHUChXrc+uurzwa0rVI16n/Xzjdz1w==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   yaml@2.7.0:
     resolution: {integrity: sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA==}
     engines: {node: '>= 14'}
@@ -593,14 +681,61 @@ snapshots:
 
   '@cfworker/json-schema@4.1.1': {}
 
-  '@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2))':
+  '@discordjs/builders@1.10.1':
+    dependencies:
+      '@discordjs/formatters': 0.6.0
+      '@discordjs/util': 1.1.1
+      '@sapphire/shapeshift': 4.0.0
+      discord-api-types: 0.37.119
+      fast-deep-equal: 3.1.3
+      ts-mixer: 6.0.4
+      tslib: 2.8.1
+
+  '@discordjs/collection@1.5.3': {}
+
+  '@discordjs/collection@2.1.1': {}
+
+  '@discordjs/formatters@0.6.0':
+    dependencies:
+      discord-api-types: 0.37.119
+
+  '@discordjs/rest@2.4.3':
+    dependencies:
+      '@discordjs/collection': 2.1.1
+      '@discordjs/util': 1.1.1
+      '@sapphire/async-queue': 1.5.5
+      '@sapphire/snowflake': 3.5.3
+      '@vladfrangu/async_event_emitter': 2.4.6
+      discord-api-types: 0.37.119
+      magic-bytes.js: 1.10.0
+      tslib: 2.8.1
+      undici: 6.21.1
+
+  '@discordjs/util@1.1.1': {}
+
+  '@discordjs/ws@1.2.1':
+    dependencies:
+      '@discordjs/collection': 2.1.1
+      '@discordjs/rest': 2.4.3
+      '@discordjs/util': 1.1.1
+      '@sapphire/async-queue': 1.5.5
+      '@types/ws': 8.18.0
+      '@vladfrangu/async_event_emitter': 2.4.6
+      discord-api-types: 0.37.119
+      tslib: 2.8.1
+      ws: 8.18.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.19
-      langsmith: 0.3.11(openai@4.85.4(zod@3.24.2))
+      langsmith: 0.3.11(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
@@ -610,54 +745,63 @@ snapshots:
     transitivePeerDependencies:
       - openai
 
-  '@langchain/langgraph-checkpoint@0.0.15(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))':
+  '@langchain/langgraph-checkpoint@0.0.15(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))':
     dependencies:
-      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
+      '@langchain/core': 0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
       uuid: 10.0.0
 
-  '@langchain/langgraph-sdk@0.0.45(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))':
+  '@langchain/langgraph-sdk@0.0.45(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))':
     dependencies:
       '@types/json-schema': 7.0.15
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 9.0.1
     optionalDependencies:
-      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
+      '@langchain/core': 0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
 
-  '@langchain/langgraph@0.2.51(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))':
+  '@langchain/langgraph@0.2.51(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))':
     dependencies:
-      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
-      '@langchain/langgraph-checkpoint': 0.0.15(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))
-      '@langchain/langgraph-sdk': 0.0.45(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))
+      '@langchain/core': 0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
+      '@langchain/langgraph-checkpoint': 0.0.15(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))
+      '@langchain/langgraph-sdk': 0.0.45(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))
       uuid: 10.0.0
       zod: 3.24.2
     transitivePeerDependencies:
       - react
 
-  '@langchain/openai@0.4.4(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))':
+  '@langchain/openai@0.4.4(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))(ws@8.18.1)':
     dependencies:
-      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
+      '@langchain/core': 0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
       js-tiktoken: 1.0.19
-      openai: 4.85.4(zod@3.24.2)
+      openai: 4.85.4(ws@8.18.1)(zod@3.24.2)
       zod: 3.24.2
       zod-to-json-schema: 3.24.3(zod@3.24.2)
     transitivePeerDependencies:
       - encoding
       - ws
 
-  '@langchain/pinecone@0.2.0(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))(@pinecone-database/pinecone@5.0.2)':
+  '@langchain/pinecone@0.2.0(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))(@pinecone-database/pinecone@5.0.2)':
     dependencies:
-      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
+      '@langchain/core': 0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
       '@pinecone-database/pinecone': 5.0.2
       flat: 5.0.2
       uuid: 10.0.0
 
-  '@langchain/textsplitters@0.1.0(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))':
+  '@langchain/textsplitters@0.1.0(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))':
     dependencies:
-      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
+      '@langchain/core': 0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
       js-tiktoken: 1.0.19
 
   '@pinecone-database/pinecone@5.0.2': {}
+
+  '@sapphire/async-queue@1.5.5': {}
+
+  '@sapphire/shapeshift@4.0.0':
+    dependencies:
+      fast-deep-equal: 3.1.3
+      lodash: 4.17.21
+
+  '@sapphire/snowflake@3.5.3': {}
 
   '@types/debug@4.1.12':
     dependencies:
@@ -681,6 +825,12 @@ snapshots:
   '@types/uuid@10.0.0': {}
 
   '@types/validator@13.12.2': {}
+
+  '@types/ws@8.18.0':
+    dependencies:
+      '@types/node': 18.19.76
+
+  '@vladfrangu/async_event_emitter@2.4.6': {}
 
   abort-controller@3.0.0:
     dependencies:
@@ -740,6 +890,26 @@ snapshots:
 
   denque@2.1.0: {}
 
+  discord-api-types@0.37.119: {}
+
+  discord.js@14.18.0:
+    dependencies:
+      '@discordjs/builders': 1.10.1
+      '@discordjs/collection': 1.5.3
+      '@discordjs/formatters': 0.6.0
+      '@discordjs/rest': 2.4.3
+      '@discordjs/util': 1.1.1
+      '@discordjs/ws': 1.2.1
+      '@sapphire/snowflake': 3.5.3
+      discord-api-types: 0.37.119
+      fast-deep-equal: 3.1.3
+      lodash.snakecase: 4.1.1
+      tslib: 2.8.1
+      undici: 6.21.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   dotenv@16.4.7: {}
 
   dottie@2.0.6: {}
@@ -768,6 +938,8 @@ snapshots:
   event-target-shim@5.0.1: {}
 
   eventemitter3@4.0.7: {}
+
+  fast-deep-equal@3.1.3: {}
 
   flat@5.0.2: {}
 
@@ -845,15 +1017,15 @@ snapshots:
 
   jsonpointer@5.0.1: {}
 
-  langchain@0.3.19(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))(openai@4.85.4(zod@3.24.2)):
+  langchain@0.3.19(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))(openai@4.85.4(ws@8.18.1)(zod@3.24.2))(ws@8.18.1):
     dependencies:
-      '@langchain/core': 0.3.41(openai@4.85.4(zod@3.24.2))
-      '@langchain/openai': 0.4.4(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))
-      '@langchain/textsplitters': 0.1.0(@langchain/core@0.3.41(openai@4.85.4(zod@3.24.2)))
+      '@langchain/core': 0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
+      '@langchain/openai': 0.4.4(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))(ws@8.18.1)
+      '@langchain/textsplitters': 0.1.0(@langchain/core@0.3.41(openai@4.85.4(ws@8.18.1)(zod@3.24.2)))
       js-tiktoken: 1.0.19
       js-yaml: 4.1.0
       jsonpointer: 5.0.1
-      langsmith: 0.3.11(openai@4.85.4(zod@3.24.2))
+      langsmith: 0.3.11(openai@4.85.4(ws@8.18.1)(zod@3.24.2))
       openapi-types: 12.1.3
       p-retry: 4.6.2
       uuid: 10.0.0
@@ -865,7 +1037,7 @@ snapshots:
       - openai
       - ws
 
-  langsmith@0.3.11(openai@4.85.4(zod@3.24.2)):
+  langsmith@0.3.11(openai@4.85.4(ws@8.18.1)(zod@3.24.2)):
     dependencies:
       '@types/uuid': 10.0.0
       chalk: 4.1.2
@@ -875,7 +1047,9 @@ snapshots:
       semver: 7.7.1
       uuid: 10.0.0
     optionalDependencies:
-      openai: 4.85.4(zod@3.24.2)
+      openai: 4.85.4(ws@8.18.1)(zod@3.24.2)
+
+  lodash.snakecase@4.1.1: {}
 
   lodash@4.17.21: {}
 
@@ -884,6 +1058,8 @@ snapshots:
   lru-cache@7.18.3: {}
 
   lru.min@1.1.1: {}
+
+  magic-bytes.js@1.10.0: {}
 
   math-intrinsics@1.1.0: {}
 
@@ -925,7 +1101,7 @@ snapshots:
     dependencies:
       whatwg-url: 10.0.0
 
-  openai@4.85.4(zod@3.24.2):
+  openai@4.85.4(ws@8.18.1)(zod@3.24.2):
     dependencies:
       '@types/node': 18.19.76
       '@types/node-fetch': 2.6.12
@@ -935,6 +1111,7 @@ snapshots:
       formdata-node: 4.4.1
       node-fetch: 2.7.0
     optionalDependencies:
+      ws: 8.18.1
       zod: 3.24.2
     transitivePeerDependencies:
       - encoding
@@ -1010,7 +1187,13 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
+  ts-mixer@6.0.4: {}
+
+  tslib@2.8.1: {}
+
   undici-types@5.26.5: {}
+
+  undici@6.21.1: {}
 
   uuid@10.0.0: {}
 
@@ -1032,6 +1215,8 @@ snapshots:
   wkx@0.5.0:
     dependencies:
       '@types/node': 18.19.76
+
+  ws@8.18.1: {}
 
   yaml@2.7.0: {}
 

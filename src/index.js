@@ -12,7 +12,9 @@ const {
   createIndicesForNewChannels,
   processChannelMessages,
 } = require("./services/vectorize/channelVectorization");
-const { Channel } = require("./models/db");
+const { Channel } = require("./models/db/channel.model");
+// Option 6: Import Discord Service to sync information from Discord
+const { syncDiscordData } = require("./services/discord/discord.service");
 
 // Create an interface for reading input from the console.
 const rl = readline.createInterface({
@@ -27,6 +29,7 @@ console.log("2: Semantic Search (Semantic Agent)");
 console.log("3: Route Query via Router Agent");
 console.log("4: Index Channels");
 console.log("5: Vectorize Channel Messages");
+console.log("6: Obtener información de Discord");
 
 // Function to keep the Router Agent conversation active.
 function startRouterConversation() {
@@ -54,8 +57,8 @@ function startRouterConversation() {
 }
 
 rl.question("Option: ", (option) => {
-  if (option.trim() === "1") {
-    // Option 1: Use the SQL Agent to generate and execute a raw SQL query.
+  const trimmed = option.trim();
+  if (trimmed === "1") {
     rl.question("Enter your natural language query: ", async (query) => {
       try {
         const result = await invokeSQLAgent(query);
@@ -67,8 +70,7 @@ rl.question("Option: ", (option) => {
         rl.close();
       }
     });
-  } else if (option.trim() === "2") {
-    // Option 2: Use the Semantic Agent to obtain semantic context.
+  } else if (trimmed === "2") {
     rl.question("Enter your natural language query: ", async (query) => {
       try {
         const result = await invokeSemanticAgent(query);
@@ -80,11 +82,9 @@ rl.question("Option: ", (option) => {
         rl.close();
       }
     });
-  } else if (option.trim() === "3") {
-    // Option 3: Start a persistent conversation with the Router Agent.
+  } else if (trimmed === "3") {
     startRouterConversation();
-  } else if (option.trim() === "4") {
-    // Option 4: Index Channels.
+  } else if (trimmed === "4") {
     rl.question(
       "Do you want to provide a list of channel IDs? (yes/no): ",
       async (answer) => {
@@ -110,7 +110,6 @@ rl.question("Option: ", (option) => {
             }
           );
         } else {
-          // No list provided, index all new channels.
           try {
             await createIndicesForNewChannels();
             console.log("Finished indexing all new channels.");
@@ -121,8 +120,7 @@ rl.question("Option: ", (option) => {
         }
       }
     );
-  } else if (option.trim() === "5") {
-    // Option 5: Vectorize Channel Messages.
+  } else if (trimmed === "5") {
     rl.question(
       "Enter the channel ID to vectorize its messages: ",
       async (channelId) => {
@@ -146,6 +144,18 @@ rl.question("Option: ", (option) => {
         }
       }
     );
+  } else if (trimmed === "6") {
+    console.log("Obteniendo información desde Discord...");
+    syncDiscordData()
+      .then(() => {
+        console.log(
+          "Información de Discord procesada y sincronizada correctamente."
+        );
+      })
+      .catch((error) => {
+        console.error("Error sincronizando información de Discord:", error);
+      })
+      .finally(() => rl.close());
   } else {
     console.log("Invalid option");
     rl.close();

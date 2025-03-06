@@ -1,21 +1,12 @@
-const pool = require("../../config/db");
+const Organization = require("../../../models/db/organization.model");
 
 async function ensureOrganization() {
   const orgName = "straico";
-  const [rows] = await pool.query(
-    "SELECT id FROM organization WHERE name = ?",
-    [orgName]
-  );
-  if (rows.length > 0) {
-    return rows[0].id;
-  } else {
-    const created_at = new Date();
-    const [result] = await pool.query(
-      "INSERT INTO organization (name, created_at) VALUES (?, ?)",
-      [orgName, created_at]
-    );
-    return result.insertId;
-  }
+  const [organization] = await Organization.findOrCreate({
+    where: { name: orgName },
+    defaults: { created_at: new Date() },
+  });
+  return organization.id;
 }
 
 module.exports = { ensureOrganization };

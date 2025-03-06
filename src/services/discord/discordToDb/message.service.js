@@ -1,4 +1,7 @@
-const pool = require("../../config/db");
+const Message = require("../../../models/db/message.model");
+const MessageAttachment = require("../../../models/db/messageAttachment.model");
+const MessageReaction = require("../../../models/db/messageReaction.model");
+const MessageMention = require("../../../models/db/messageMention.model");
 const { upsertUser, upsertChannelUser } = require("./user.service");
 
 async function saveMessage(
@@ -7,9 +10,12 @@ async function saveMessage(
   message,
   threadInternalId = null
 ) {
+  // Determinar el nick del usuario (usando member.nickname si está disponible).
   const userNick = message.member
     ? message.member.nickname || message.author.username
     : message.author.username;
+
+  // Asegurarse de que el usuario exista y obtener su ID interno.
   const userInternalId = await upsertUser(
     message.author.id,
     serverInternalId,
@@ -17,47 +23,49 @@ async function saveMessage(
     userNick
   );
 
-  const query = `
-    INSERT INTO message (discord_id, fk_channel_id, fk_thread_id, fk_user_id, content, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      content = IF(content <> VALUES(content), VALUES(content), content),
-      id = LAST_INSERT_ID(id)
-  `;
-  const [result] = await pool.query(query, [
-    message.id,
-    channelInternalId,
-    threadInternalId,
-    userInternalId,
-    message.content,
-    message.createdAt,
-  ]);
-  const messageInternalId = result.insertId;
+  // Buscar o crear el registro del mensaje basado en su discord_id.
+  const [msgRecord, created] = await Message.findOrCreate({
+    where: { discord_id: message.id },
+    defaults: {
+      fk_channel_id: channelInternalId,
+      fk_thread_id: threadInternalId,
+      fk_user_id: userInternalId,
+      content: message.content,
+      created_at: message.createdAt,
+    },
+  });
 
-  // Record the user's participation in the channel.
+  // Si el mensaje ya existía, actualizar el contenido si es necesario.
+  if (!created && msgRecord.content !== message.content) {
+    msgRecord.content = message.content;
+    await msgRecord.save();
+  }
+  const messageInternalId = msgRecord.id;
+
+  // Registrar la participación del usuario en el canal.
   await upsertChannelUser(channelInternalId, userInternalId, message.createdAt);
 
-  // Process attachments.
+  // Procesar attachments (adjuntos).
   if (message.attachments && message.attachments.size > 0) {
     await Promise.all(
       Array.from(message.attachments.values()).map(async (attachment) => {
-        const attachmentQuery = `
-          INSERT INTO message_attachment (fk_message_id, attachment_url, created_at)
-          VALUES (?, ?, ?)
-          ON DUPLICATE KEY UPDATE created_at = IF(created_at <> VALUES(created_at), VALUES(created_at), created_at)
-        `;
-        await pool.query(attachmentQuery, [
-          messageInternalId,
-          attachment.url,
-          new Date(),
-        ]);
+        await MessageAttachment.findOrCreate({
+          where: {
+            message_id: messageInternalId,
+            attachment_url: attachment.url,
+          },
+          defaults: {
+            created_at: new Date(),
+          },
+        });
       })
     );
   }
 
-  // Process reactions.
+  // Procesar reactions.
   if (message.reactions && message.reactions.cache.size > 0) {
     for (const reaction of message.reactions.cache.values()) {
+      // Se obtienen los usuarios que reaccionaron (limitando el tiempo de la consulta).
       const users = await reaction.users.fetch({ time: 3600000 });
       await Promise.all(
         Array.from(users.values()).map(async (user) => {
@@ -68,64 +76,67 @@ async function saveMessage(
             user.username,
             reactionUserNick
           );
-          const reactionQuery = `
-            INSERT INTO message_reaction (fk_message_id, fk_user_id, reaction_type, created_at)
-            VALUES (?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE created_at = IF(created_at <> VALUES(created_at), VALUES(created_at), created_at)
-          `;
-          await pool.query(reactionQuery, [
-            messageInternalId,
-            reactionUserInternalId,
-            reaction.emoji.name,
-            new Date(),
-          ]);
+          await MessageReaction.findOrCreate({
+            where: {
+              fk_message_id: messageInternalId,
+              fk_user_id: reactionUserInternalId,
+              reaction_type: reaction.emoji.name,
+            },
+            defaults: {
+              created_at: new Date(),
+            },
+          });
         })
       );
     }
   }
 
-  // Process mentions.
+  // Procesar menciones.
   await saveMessageMentions(messageInternalId, message);
 
   return messageInternalId;
 }
 
 async function saveMessageMentions(messageInternalId, message) {
-  // Process user mentions.
+  // Procesar menciones de usuario.
   if (message.mentions.users && message.mentions.users.size > 0) {
     for (const user of message.mentions.users.values()) {
-      const mentionQuery = `
-        INSERT INTO message_mention (fk_message_id, mention_type, target_id, created_at)
-        VALUES (?, 'user', ?, ?)
-      `;
-      await pool.query(mentionQuery, [messageInternalId, user.id, new Date()]);
+      await MessageMention.create({
+        fk_message_id: messageInternalId,
+        mention_type: "user",
+        target_id: user.id,
+        created_at: new Date(),
+      });
     }
   }
-  // Process role mentions.
+  // Procesar menciones de rol.
   if (message.mentions.roles && message.mentions.roles.size > 0) {
     for (const role of message.mentions.roles.values()) {
-      const mentionQuery = `
-        INSERT INTO message_mention (fk_message_id, mention_type, target_id, created_at)
-        VALUES (?, 'role', ?, ?)
-      `;
-      await pool.query(mentionQuery, [messageInternalId, role.id, new Date()]);
+      await MessageMention.create({
+        fk_message_id: messageInternalId,
+        mention_type: "role",
+        target_id: role.id,
+        created_at: new Date(),
+      });
     }
   }
-  // Process @everyone and @here mentions.
+  // Procesar menciones @everyone y @here.
   if (message.mentions.everyone) {
     if (message.content.includes("@everyone")) {
-      const mentionQuery = `
-        INSERT INTO message_mention (fk_message_id, mention_type, target_id, created_at)
-        VALUES (?, 'all', NULL, ?)
-      `;
-      await pool.query(mentionQuery, [messageInternalId, new Date()]);
+      await MessageMention.create({
+        fk_message_id: messageInternalId,
+        mention_type: "all",
+        target_id: null,
+        created_at: new Date(),
+      });
     }
     if (message.content.includes("@here")) {
-      const mentionQuery = `
-        INSERT INTO message_mention (fk_message_id, mention_type, target_id, created_at)
-        VALUES (?, 'here', NULL, ?)
-      `;
-      await pool.query(mentionQuery, [messageInternalId, new Date()]);
+      await MessageMention.create({
+        fk_message_id: messageInternalId,
+        mention_type: "here",
+        target_id: null,
+        created_at: new Date(),
+      });
     }
   }
 }

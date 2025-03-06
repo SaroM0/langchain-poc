@@ -1,21 +1,20 @@
-const pool = require("../../config/db");
+const Role = require("../../../models/db/role.model");
 
 async function saveRole(role) {
-  const query = `
-    INSERT INTO role (name, description, created_at)
-    VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      name = IF(name <> VALUES(name), VALUES(name), name),
-      description = IF(description <> VALUES(description), VALUES(description), description)
-  `;
   const created_at = new Date();
+  // Usamos el campo "hoist" para definir la descripción del rol.
   const description = role.hoist ? "Hoisted role" : "";
-  const [result] = await pool.query(query, [
-    role.name,
+
+  // Upsert: actualiza el rol si existe (identificado por su nombre) o lo crea si no.
+  await Role.upsert({
+    name: role.name,
     description,
     created_at,
-  ]);
-  return result.insertId;
+  });
+
+  // Buscar el registro para obtener su ID interno.
+  const savedRole = await Role.findOne({ where: { name: role.name } });
+  return savedRole.id;
 }
 
 module.exports = { saveRole };

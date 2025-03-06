@@ -1,20 +1,18 @@
-const pool = require("../../config/db");
+const Server = require("../../../models/db/server.model");
 
 async function saveServer(server, organizationId) {
-  const query = `
-    INSERT INTO server (discord_id, fk_organization_id, name)
-    VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      fk_organization_id = IF(fk_organization_id <> VALUES(fk_organization_id), VALUES(fk_organization_id), fk_organization_id),
-      name = IF(name <> VALUES(name), VALUES(name), name),
-      id = LAST_INSERT_ID(id)
-  `;
-  const [result] = await pool.query(query, [
-    server.id,
-    organizationId,
-    server.name,
-  ]);
-  return result.insertId;
+  await Server.upsert({
+    discord_id: server.id,
+    fk_organization_id: organizationId,
+    name: server.name,
+    created_at: server.createdAt,
+  });
+
+  // Buscar el registro para retornar su ID interno.
+  const savedServer = await Server.findOne({
+    where: { discord_id: server.id },
+  });
+  return savedServer.id;
 }
 
 module.exports = { saveServer };

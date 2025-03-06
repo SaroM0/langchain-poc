@@ -1,4 +1,5 @@
-const pool = require("../../config/db");
+const User = require("../../../models/db/user.model");
+const ChannelUser = require("../../../models/db/channelUser.model");
 
 async function upsertUser(
   discordUserId,
@@ -6,31 +7,34 @@ async function upsertUser(
   globalUserName,
   serverNickname
 ) {
-  const query = `
-    INSERT INTO \`user\` (id, discord_id, fk_server_id, name, nick)
-    VALUES (NULL, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      fk_server_id = IF(fk_server_id <> VALUES(fk_server_id), VALUES(fk_server_id), fk_server_id),
-      name = IF(name <> VALUES(name), VALUES(name), name),
-      nick = IF(nick <> VALUES(nick), VALUES(nick), nick),
-      id = LAST_INSERT_ID(id)
-  `;
-  const [result] = await pool.query(query, [
-    discordUserId,
-    serverInternalId,
-    globalUserName,
-    serverNickname,
-  ]);
-  return result.insertId;
+  // Se realiza el upsert basándonos en el discord_id.
+  await User.upsert({
+    discord_id: discordUserId,
+    fk_server_id: serverInternalId,
+    name: globalUserName,
+    nick: serverNickname,
+  });
+  // Buscar el registro para retornar su ID interno.
+  const userRecord = await User.findOne({
+    where: { discord_id: discordUserId },
+  });
+  return userRecord.id;
 }
 
 async function upsertChannelUser(channelInternalId, userInternalId, joinedAt) {
-  const query = `
-    INSERT INTO channel_user (fk_channel_id, fk_user_id, joined_at)
-    VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE joined_at = IF(joined_at <> VALUES(joined_at), VALUES(joined_at), joined_at)
-  `;
-  await pool.query(query, [channelInternalId, userInternalId, joinedAt]);
+  // "joinedAt" es la fecha en la que el usuario entró al servidor, proveniente de la API.
+  const [channelUser, created] = await ChannelUser.findOrCreate({
+    where: { fk_channel_id: channelInternalId, fk_user_id: userInternalId },
+    defaults: { joined_at: joinedAt },
+  });
+  // Si ya existía y la fecha de ingreso es distinta a la proporcionada por la API, se actualiza.
+  if (
+    !created &&
+    channelUser.joined_at.getTime() !== new Date(joinedAt).getTime()
+  ) {
+    channelUser.joined_at = joinedAt;
+    await channelUser.save();
+  }
 }
 
 module.exports = { upsertUser, upsertChannelUser };
