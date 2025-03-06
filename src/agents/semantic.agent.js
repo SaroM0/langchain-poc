@@ -7,7 +7,10 @@ import {
 } from "@langchain/langgraph";
 import { openaiChat } from "../config/openai.config.js";
 import { executeQuery } from "../services/db/executeQuery.service.js";
-import { structureFragments } from "../services/semantic/semanticSearch.service.js";
+import {
+  structureFullResults,
+  extractDateRange,
+} from "../services/semantic/semanticSearch.service.js";
 import { listPineconeIndexes } from "../config/pinecone.config.js";
 
 // -------------------------------------------------------------------------
@@ -117,15 +120,52 @@ async function semanticSearchNode(state) {
     channelsToSearch = state.channels.map((ch) => String(ch.id));
   }
   state.searchResults = {};
+
+  // Extract the date range from the user query
+  // Extract the date range from the user query
+  const dateRange = (await extractDateRange(userQuery)) || {};
+  let filter = {};
+  if (dateRange.startDate && dateRange.endDate) {
+    // Convertir las fechas ISO a timestamps (milisegundos)
+    const startTimestamp = new Date(dateRange.startDate).getTime();
+    const endTimestamp = new Date(dateRange.endDate).getTime();
+    filter = {
+      created_at: {
+        $gte: startTimestamp,
+        $lte: endTimestamp,
+      },
+    };
+  }
+
   for (const channelId of channelsToSearch) {
     console.log(
-      `[semanticSearchNode] Performing semantic search for channel ${channelId}`
+      `[semanticSearchNode] Performing semantic search for channel ${channelId} with filter: ${JSON.stringify(
+        filter
+      )}`
     );
     try {
-      const context = await structureFragments(userQuery, channelId);
-      state.searchResults[channelId] = context;
+      const fullResults = await structureFullResults(
+        userQuery,
+        channelId,
+        10,
+        filter
+      );
+      console.log(
+        `[semanticSearchNode] Full results for channel ${channelId}: ${JSON.stringify(
+          fullResults,
+          null,
+          2
+        )}`
+      );
+      state.searchResults[channelId] = fullResults;
       state.messages.push(
-        new AIMessage(`Context for channel ${channelId}: ${context}`)
+        new AIMessage(
+          `Full results for channel ${channelId}: ${JSON.stringify(
+            fullResults,
+            null,
+            2
+          )}`
+        )
       );
     } catch (error) {
       state.messages.push(
@@ -146,7 +186,11 @@ async function aggregationNode(state) {
   const searchResults = state.searchResults;
   let aggregatedContext = "";
   for (const channelId in searchResults) {
-    aggregatedContext += `Channel ${channelId}:\n${searchResults[channelId]}\n\n`;
+    aggregatedContext += `Channel ${channelId}:\n${JSON.stringify(
+      searchResults[channelId],
+      null,
+      2
+    )}\n\n`;
   }
   state.aggregatedContext = aggregatedContext;
   state.messages.push(

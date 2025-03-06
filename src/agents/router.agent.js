@@ -14,7 +14,7 @@ import { invokeSemanticAgent } from "./semantic.agent.js";
 import { openaiChat } from "../config/openai.config.js";
 
 // --------------------------------------------------
-// 1. Define the state annotation to store messages
+// 1. Define state annotation to store messages
 // --------------------------------------------------
 const StateAnnotation = Annotation.Root({
   messages: Annotation({
@@ -23,10 +23,10 @@ const StateAnnotation = Annotation.Root({
 });
 
 // --------------------------------------------------
-// 2. Functions to generate specialized queries dynamically
+// 2. Functions to generate refined queries dynamically
 // --------------------------------------------------
 async function getQuantitativeQuery(query) {
-  const prompt = `You are a SQL expert specialized in quantitative analysis. 
+  const prompt = `You are a SQL expert specialized in quantitative analysis.
 Given the following user query:
 "${query}"
 Generate a refined quantitative query that instructs the DB agent to return channel names and user names representing the most active and positive participants.
@@ -40,7 +40,7 @@ Return only the refined query as plain text.`;
 }
 
 async function getSemanticQuery(query) {
-  const prompt = `You are an expert in semantic analysis. 
+  const prompt = `You are an expert in semantic analysis.
 Given the following user query:
 "${query}"
 Generate a refined semantic query that instructs the Semantic agent to return descriptive insights regarding positive and energetic messages in a natural, conversational tone.
@@ -54,12 +54,12 @@ Return only the refined query as plain text.`;
 }
 
 // --------------------------------------------------
-// 3. Utility function that decides the query nature
+// 3. Utility function to decide query nature
 // --------------------------------------------------
 async function decideQueryNature(query) {
   const decisionPrompt = `You are a router agent. Analyze the following query and decide if it is:
-- quantitative (requiring numerical, aggregated data that can be obtained from the db tables eg. names, numbers, counts, times),
-- semantic (requiring contextual, descriptive information such as emotions, attitudes, and similar aspects), or
+- quantitative (requiring numerical, aggregated data that can be obtained from the db tables e.g. names, numbers, counts, times),
+- semantic (requiring contextual, descriptive information such as emotions, attitudes, etc.), or
 - hybrid (requiring a combination of both types of information).
 
 Query: "${query}"
@@ -124,16 +124,13 @@ async function routeDecision({ query, channel_id }) {
     semanticResult = await invokeSemanticAgent(refinedSemQuery, { channel_id });
   }
 
-  // Combine the results into a consolidated response (using names, not IDs)
-  const combined = `Quantitative Data:
-${quantitativeResult}
+  // Return results exclusively based on agents' responses without additional commentary
+  const combined = {
+    quantitativeResult: quantitativeResult,
+    semanticResult: semanticResult,
+  };
 
-Semantic Insights:
-${semanticResult}
-
-Final Analysis: The above information, combining both numerical data and contextual insights, identifies the key channels and users with positive and participative activity.`;
-
-  return JSON.stringify({ combinedResult: combined });
+  return JSON.stringify(combined);
 }
 
 // --------------------------------------------------
