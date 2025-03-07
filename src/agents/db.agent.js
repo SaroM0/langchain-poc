@@ -9,9 +9,19 @@ const { openaiChat } = require("../config/openai.config");
 const { getDatabaseContext } = require("../services/db/getDbContext.service");
 const { executeQuery } = require("../services/db/executeQuery.service");
 
-// Función auxiliar para resumir un bloque de contexto
+// In-memory cache for database schema
+const schemaCache = {};
+
+async function getCachedDatabaseContext() {
+  if (!schemaCache.dbContext) {
+    schemaCache.dbContext = await getDatabaseContext();
+  }
+  return schemaCache.dbContext;
+}
+
+// Helper function to summarize a block of context text.
 async function summarizeContext(contextText) {
-  const prompt = `You are an expert summarizer. Summarize the following information, extracting only the most relevant details in a concise manner:
+  const prompt = `You are an expert summarizer. Summarize the following information by extracting only the most relevant details in a concise manner:
 
 "${contextText}"
 
@@ -23,7 +33,7 @@ Your answer should be plain text only, without any JSON formatting.`;
   return response.content.trim();
 }
 
-// Función auxiliar para ejecución iterativa de queries
+// Helper function to iteratively execute queries (up to maxIterations) until a non-empty result is obtained.
 async function iterativeExecuteQuery(sqlQuery, maxIterations = 3) {
   let iteration = 0;
   let result = [];
@@ -32,15 +42,15 @@ async function iterativeExecuteQuery(sqlQuery, maxIterations = 3) {
       result = await executeQuery({ sqlQuery });
       if (Array.isArray(result) && result.length > 0) break;
     } catch (error) {
-      // Podemos registrar el error aquí si se requiere
+      // Log error if necessary
     }
     iteration++;
   }
   return result;
 }
 
-// Función auxiliar para asegurar que una subconsulta no regrese vacío.
-// Si se obtiene un resultado vacío, solicita al modelo que genere una nueva query para ese recurso.
+// Helper function to ensure that a subquery does not return empty.
+// If an empty result is obtained, it asks the model to generate a new query for that resource.
 async function ensureNonEmptyResult(
   promptTemplate,
   contextVars,
@@ -54,7 +64,6 @@ async function ensureNonEmptyResult(
     newResult.length === 0 &&
     retries < maxRetries
   ) {
-    // Se pueden incluir las variables de contexto (por ejemplo, el recurso actual)
     const prompt = promptTemplate(...contextVars);
     const response = await openaiChat.invoke(
       [{ role: "user", content: prompt }],
@@ -66,7 +75,6 @@ async function ensureNonEmptyResult(
     } catch (e) {
       throw new Error("Error parsing iterative query response: " + e.message);
     }
-    // Suponemos que el JSON tiene la misma estructura que antes
     const newQuery =
       parsed.validationQueries &&
       parsed.validationQueries[0] &&
@@ -83,7 +91,7 @@ async function ensureNonEmptyResult(
 // -------------------------------------------------------------------------
 async function validationNode(state) {
   const userQuery = state.messages[0].content;
-  const dbContext = await getDatabaseContext();
+  const dbContext = await getCachedDatabaseContext();
   const prompt = `You are a SQL expert. Using only the following complete database schema summary:
 ${dbContext}
 
@@ -130,7 +138,7 @@ If no validation is needed, return {"validationQueries": []}.`;
   state.validations = { queries: parsed.validationQueries, results: {} };
   for (const queryObj of parsed.validationQueries) {
     let result = await iterativeExecuteQuery(queryObj.sqlQuery);
-    // Si el resultado está vacío, intenta generar una nueva query para ese recurso
+    // If the result is empty, attempt to generate a new query for that resource.
     if (Array.isArray(result) && result.length === 0) {
       result = await ensureNonEmptyResult(
         (
@@ -157,7 +165,7 @@ Return your answer as a JSON object with a key "validationQueries" containing an
 // -------------------------------------------------------------------------
 async function metadataCheckNode(state) {
   const userQuery = state.messages[0].content;
-  const dbContext = await getDatabaseContext();
+  const dbContext = await getCachedDatabaseContext();
   const prompt = `You are an expert SQL assistant. Using only the following complete database schema summary:
 ${dbContext}
 
@@ -237,7 +245,7 @@ async function metadataQueryNode(state) {
 // -------------------------------------------------------------------------
 async function inspectionNode(state) {
   const userQuery = state.messages[0].content;
-  const dbContext = await getDatabaseContext();
+  const dbContext = await getCachedDatabaseContext();
   const prompt = `You are a SQL expert. Based on the following complete database schema summary:
 ${dbContext}
 
@@ -283,7 +291,7 @@ If no inspection is needed, return {"inspectionQueries": []}.`;
   state.inspections = { queries: parsed.inspectionQueries, results: {} };
   for (const queryObj of parsed.inspectionQueries) {
     let result = await iterativeExecuteQuery(queryObj.sqlQuery);
-    // Si el resultado sigue siendo vacío, se puede volver a solicitar al modelo
+    // If the result is still empty, re-request a new query from the model.
     if (Array.isArray(result) && result.length === 0) {
       result = await ensureNonEmptyResult(
         (
@@ -307,7 +315,7 @@ Return your answer as a JSON object with a key "inspectionQueries" containing an
 
 // -------------------------------------------------------------------------
 // Node: summarizeContextNode
-// Este nodo resume los contextos acumulados para reducir la longitud total.
+// This node summarizes accumulated context to reduce total length.
 async function summarizeContextNode(state) {
   let contextToSummarize = "";
   for (const msg of state.messages) {
@@ -319,7 +327,8 @@ async function summarizeContextNode(state) {
       contextToSummarize += msg.content + "\n";
     }
   }
-  if (contextToSummarize.length === 0) {
+  // Only summarize if context is lengthy (e.g., over 1000 characters)
+  if (contextToSummarize.length < 1000) {
     return state;
   }
   const summary = await summarizeContext(contextToSummarize);
@@ -333,7 +342,7 @@ async function summarizeContextNode(state) {
 // -------------------------------------------------------------------------
 async function sqlAgentNode(state) {
   const userQuery = state.messages[0].content;
-  const dbContext = await getDatabaseContext();
+  const dbContext = await getCachedDatabaseContext();
   const summarizedContext = state.summarizedContext || "";
   let errorContext = "";
   for (const msg of state.messages) {
@@ -364,7 +373,7 @@ ${inspectionContext}
 ${errorContext}
 
 You are a SQL expert with deep knowledge of MySQL. Your task is to convert the following natural language description into a precise, syntactically correct raw SQL SELECT query for MySQL.
-Important: Only use the tables, columns, and the validated or inspected data provided above. Do NOT assume any names, tables, or attributes that have not been verified.
+Important: Only use the tables, columns, and the validated/inspected data provided above. Do NOT assume any names, tables, or attributes that have not been verified.
 Guidelines:
 1. The query must be a valid SELECT query that only retrieves data.
 2. Use appropriate clauses for filtering, grouping, ordering, and pagination as needed.
@@ -411,12 +420,77 @@ Your answer must be a valid JSON object only (no extra text).`,
 }
 
 // -------------------------------------------------------------------------
+// Node: logicalValidationNode
+// This new node performs logical validation of the generated SQL query.
+async function logicalValidationNode(state) {
+  const userQuery = state.messages[0].content;
+  const lastMessage = state.messages[state.messages.length - 1];
+  const sqlQuery = lastMessage.content;
+
+  // Security check: ensure the query is a SELECT query.
+  if (!/^SELECT\s/i.test(sqlQuery.trim())) {
+    throw new Error("Only SELECT queries are allowed. Query blocked.");
+  }
+
+  const prompt = `You are a SQL expert. The user query is: "${userQuery}" and the generated SQL query is: "${sqlQuery}". 
+Verify if this SQL query logically meets all the conditions specified by the user.
+If the query is logically correct and complete, reply with a JSON object: {"validation": "VALID"}.
+If there are missing conditions or logical issues, reply with a JSON object containing a key "corrections" describing the issues and a key "newQuery" with the corrected SQL query.`;
+
+  const response = await openaiChat.invoke(
+    [{ role: "user", content: prompt }],
+    {
+      model: "o3-mini",
+      max_tokens: 1000,
+      jsonSchema: {
+        type: "object",
+        properties: {
+          validation: { type: "string" },
+        },
+        additionalProperties: true,
+        required: ["validation"],
+      },
+    }
+  );
+  let parsed;
+  try {
+    parsed = JSON.parse(response.content);
+  } catch (e) {
+    throw new Error("Error parsing logical validation response: " + e.message);
+  }
+  if (parsed.validation !== "VALID") {
+    if (parsed.newQuery) {
+      state.messages.push(
+        new AIMessage(
+          `Logical Validation Correction: ${JSON.stringify(parsed)}`
+        )
+      );
+      // Replace the last query with the corrected one.
+      state.messages.push(new AIMessage(parsed.newQuery));
+    } else {
+      throw new Error(
+        "Logical validation failed without providing a new query."
+      );
+    }
+  } else {
+    state.messages.push(new AIMessage("Logical Validation: VALID"));
+  }
+  return state;
+}
+
+// -------------------------------------------------------------------------
 // Node: executeSQLTool
 // -------------------------------------------------------------------------
 async function executeSQLTool(state) {
   const lastMessage = state.messages[state.messages.length - 1];
   const sqlQuery = lastMessage.content;
   console.log("[executeSQLTool] Executing SQL query:", sqlQuery);
+
+  // Security check: only allow SELECT queries.
+  if (!/^SELECT\s/i.test(sqlQuery.trim())) {
+    throw new Error("Only SELECT queries are allowed. Query blocked.");
+  }
+
   try {
     const result = await executeQuery({ sqlQuery });
     console.log("[executeSQLTool] Query execution result:", result);
@@ -432,12 +506,18 @@ async function executeSQLTool(state) {
     }
     if (state.retryCount < 3) {
       state.retryCount++;
-      state.messages.push(
-        new HumanMessage(
-          `The previous SQL query failed with error: ${error.message}. Please generate a new query considering this error, and only use the tables provided in the schema and the validated/inspected data.`
-        )
-      );
-      const newState = await sqlAgentNode(state);
+      let errorPrompt = "";
+      const lowerMsg = error.message.toLowerCase();
+      if (lowerMsg.includes("syntax")) {
+        errorPrompt = `The previous SQL query had a syntax error: "${error.message}". Please generate a new query with correct syntax.`;
+      } else if (lowerMsg.includes("unknown column")) {
+        errorPrompt = `The previous SQL query referenced an unknown column. Correct the query using the validated schema.`;
+      } else {
+        errorPrompt = `The previous SQL query failed with error: "${error.message}". Please generate a new query considering this error.`;
+      }
+      state.messages.push(new HumanMessage(errorPrompt));
+      // Regenerate the query by calling logicalValidationNode to trigger regeneration.
+      const newState = await logicalValidationNode(state);
       return await executeSQLTool(newState);
     } else {
       state.messages.push(
@@ -452,10 +532,14 @@ async function executeSQLTool(state) {
 
 // -------------------------------------------------------------------------
 // Node: rephraseAnswerNode
-// Este nodo utiliza el resultado de la consulta ejecutada y lo transforma en una respuesta natural.
-// -------------------------------------------------------------------------
+// This node uses the executed query result to produce a natural language answer.
 async function rephraseAnswerNode(state) {
   const lastResultMessage = state.messages[state.messages.length - 1].content;
+  // Check for empty results.
+  if (lastResultMessage === "[]" || lastResultMessage.trim() === "") {
+    state.messages.push(new AIMessage("No data found for your query."));
+    return state;
+  }
   const userQuery = state.messages[0].content;
   const prompt = `You are an expert at analyzing technical data and transforming it into a comprehensive natural language explanation.
 Given the user query:
@@ -487,6 +571,7 @@ const sqlAgentStateGraph = new StateGraph(
   .addNode("inspection", inspectionNode)
   .addNode("summarizeContext", summarizeContextNode)
   .addNode("agent", sqlAgentNode)
+  .addNode("logicalValidation", logicalValidationNode)
   .addNode("execute", executeSQLTool)
   .addNode("rephrase", rephraseAnswerNode)
   .addEdge("__start__", "validation")
@@ -495,7 +580,8 @@ const sqlAgentStateGraph = new StateGraph(
   .addEdge("metadataQuery", "inspection")
   .addEdge("inspection", "summarizeContext")
   .addEdge("summarizeContext", "agent")
-  .addEdge("agent", "execute")
+  .addEdge("agent", "logicalValidation")
+  .addEdge("logicalValidation", "execute")
   .addEdge("execute", "rephrase");
 
 // -------------------------------------------------------------------------

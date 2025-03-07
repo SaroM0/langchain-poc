@@ -58,7 +58,7 @@ Return only the refined query as plain text.`;
 // --------------------------------------------------
 async function decideQueryNature(query) {
   const decisionPrompt = `You are a router agent. Analyze the following query and decide if it is:
-- quantitative (requiring numerical, aggregated data that can be obtained from the db tables e.g. names, numbers, counts, times),
+- quantitative (requiring numerical, aggregated data obtained from the db tables, e.g. names, numbers, counts),
 - semantic (requiring contextual, descriptive information such as emotions, attitudes, etc.), or
 - hybrid (requiring a combination of both types of information).
 
@@ -69,7 +69,6 @@ Return your answer strictly as a JSON object with a key "choice" whose value is 
   const decisionResponse = await openaiChat.call([
     new HumanMessage(decisionPrompt),
   ]);
-
   try {
     const parsed = JSON.parse(decisionResponse.content);
     console.log("[decideQueryNature] Parsed decision:", parsed);
@@ -105,26 +104,72 @@ async function routeDecision({ query, channel_id }) {
     console.log("[routeDecision] Semantic query refined:", refinedSemQuery);
     semanticResult = await invokeSemanticAgent(refinedSemQuery, { channel_id });
   } else if (decision.choice === "hybrid") {
-    const refinedQuantQuery = await getQuantitativeQuery(query);
+    // Hybrid flow: First call the semantic agent
     const refinedSemQuery = await getSemanticQuery(query);
     console.log(
-      "[routeDecision] Hybrid queries refined:",
-      refinedQuantQuery,
+      "[routeDecision] Hybrid - semantic part refined:",
       refinedSemQuery
     );
-    quantitativeResult = await invokeSQLAgent(refinedQuantQuery);
     semanticResult = await invokeSemanticAgent(refinedSemQuery, { channel_id });
-  } else {
-    const refinedQuantQuery = await getQuantitativeQuery(query);
-    const refinedSemQuery = await getSemanticQuery(query);
+
+    // Analyze semantic result to identify missing exact names or details
+    const missingPrompt = `You are a SQL expert specialized in data validation.
+Based on the semantic response below and the original user query, identify if any exact names, identifiers, or database-specific details are missing that would be necessary to provide a fully accurate quantitative answer.
+Semantic response:
+"${semanticResult}"
+User query:
+"${query}"
+If something is missing, list them as a comma-separated list (e.g., table names, column names). If nothing is missing, reply with "none".`;
+
+    const missingResponse = await openaiChat.invoke(
+      [new HumanMessage(missingPrompt)],
+      { model: "o3-mini", max_tokens: 500 }
+    );
+    const missingDetails = missingResponse.content.trim().toLowerCase();
     console.log(
-      "[routeDecision] Unknown query type. Defaulting to hybrid queries."
+      "[routeDecision] Missing details from semantic response:",
+      missingDetails
+    );
+
+    let complementaryResult = "";
+    // If missing details exist, generate a complementary quantitative query.
+    if (missingDetails !== "none" && missingDetails !== "") {
+      const complementPrompt = `You are a SQL expert. Based on the following missing details: "${missingDetails}" and the original user query: "${query}", generate a SQL query that retrieves the missing exact names and details from the database.
+Return only the SQL query as plain text.`;
+      const refinedComplementResponse = await openaiChat.invoke(
+        [new HumanMessage(complementPrompt)],
+        { model: "o3-mini", max_tokens: 500 }
+      );
+      const complementQuery = refinedComplementResponse.content.trim();
+      console.log(
+        "[routeDecision] Complementary quantitative query refined:",
+        complementQuery
+      );
+      complementaryResult = await invokeSQLAgent(complementQuery);
+    }
+
+    // Then, perform the quantitative query as usual.
+    const refinedQuantQuery = await getQuantitativeQuery(query);
+    console.log(
+      "[routeDecision] Hybrid - quantitative part refined:",
+      refinedQuantQuery
     );
     quantitativeResult = await invokeSQLAgent(refinedQuantQuery);
+
+    // If there is complementary information, append it to the quantitative result.
+    if (complementaryResult) {
+      quantitativeResult = `${quantitativeResult}\nComplementary Details:\n${complementaryResult}`;
+    }
+  } else {
+    // Fallback default to hybrid if unknown type
+    console.log("[routeDecision] Unknown query type. Defaulting to hybrid.");
+    const refinedSemQuery = await getSemanticQuery(query);
+    const refinedQuantQuery = await getQuantitativeQuery(query);
     semanticResult = await invokeSemanticAgent(refinedSemQuery, { channel_id });
+    quantitativeResult = await invokeSQLAgent(refinedQuantQuery);
   }
 
-  // Return results exclusively based on agents' responses without additional commentary
+  // Return results as a combined JSON object
   const combined = {
     quantitativeResult: quantitativeResult,
     semanticResult: semanticResult,
@@ -139,7 +184,7 @@ async function routeDecision({ query, channel_id }) {
 const routeDecisionTool = tool(routeDecision, {
   name: "routeTool",
   description:
-    "Routes a user query to the DB agent (for quantitative info) and the semantic agent (for descriptive info) and combines the results.",
+    "Routes a user query to the DB agent (for quantitative info) and the semantic agent (for descriptive info), then dynamically complements hybrid queries by checking for missing details.",
   schema: z.object({
     query: z.string().describe("The user's query."),
     channel_id: z
