@@ -12,7 +12,7 @@ const { saveMessage } = require("./discordToDb/message.service");
 const { saveRole } = require("./discordToDb/role.service");
 const {
   saveMessageAttachment,
-} = require("./discordToDb/messageAttachment.servicervice");
+} = require("./discordToDb/messageAttachment.service");
 const ChannelModel = require("../../models/db/channel.model");
 
 // Sleep function to wait for a given number of milliseconds
