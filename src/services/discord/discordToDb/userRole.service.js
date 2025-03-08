@@ -1,20 +1,37 @@
+// userRole.service.js
 const UserRole = require("../../../models/db/userRole.model");
+const Role = require("../../../models/db/role.model");
 
-async function saveUserRole(userInternalId, roleId, assignedAt) {
-  // Se utiliza findOrCreate para crear o encontrar la asociación entre el usuario y el rol.
-  const [userRole, created] = await UserRole.findOrCreate({
-    where: { fk_user_id: userInternalId, fk_role_id: roleId },
-    defaults: { assigned_at: assignedAt },
+/**
+ * Guarda o actualiza la relación entre un usuario y un rol.
+ *
+ * @param {number} userInternalId - El ID interno del usuario.
+ * @param {string} discordRoleId - El ID de rol asignado por Discord (snowflake).
+ * @param {Date} assignedAt - Fecha en que se asignó el rol.
+ * @returns {Promise<number>} El ID interno de la relación, o null si no se pudo guardar.
+ */
+async function saveUserRole(userInternalId, discordRoleId, assignedAt) {
+  // Buscar el rol en la tabla role usando su discord_id.
+  const roleRecord = await Role.findOne({
+    where: { discord_id: discordRoleId },
+  });
+  if (!roleRecord) {
+    console.warn(`Role with discord_id ${discordRoleId} not found.`);
+    return null;
+  }
+
+  // Ahora usamos el ID interno del rol (roleRecord.id) para guardar la relación.
+  const [userRoleRecord, created] = await UserRole.findOrCreate({
+    where: {
+      fk_user_id: userInternalId,
+      fk_role_id: roleRecord.id,
+    },
+    defaults: {
+      assigned_at: assignedAt,
+    },
   });
 
-  // Si ya existía y la fecha de asignación es distinta, se actualiza.
-  if (
-    !created &&
-    userRole.assigned_at.getTime() !== new Date(assignedAt).getTime()
-  ) {
-    userRole.assigned_at = assignedAt;
-    await userRole.save();
-  }
+  return userRoleRecord.id;
 }
 
 module.exports = { saveUserRole };

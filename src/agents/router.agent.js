@@ -104,13 +104,15 @@ async function routeDecision({ query, channel_id }) {
     console.log("[routeDecision] Semantic query refined:", refinedSemQuery);
     semanticResult = await invokeSemanticAgent(refinedSemQuery, { channel_id });
   } else if (decision.choice === "hybrid") {
-    // Hybrid flow: First call the semantic agent
+    // Hybrid flow: first call the semantic agent
     const refinedSemQuery = await getSemanticQuery(query);
     console.log(
       "[routeDecision] Hybrid - semantic part refined:",
       refinedSemQuery
     );
     semanticResult = await invokeSemanticAgent(refinedSemQuery, { channel_id });
+
+    console.log("[routeDecision] Semantic result:", semanticResult);
 
     // Analyze semantic result to identify missing exact names or details
     const missingPrompt = `You are a SQL expert specialized in data validation.

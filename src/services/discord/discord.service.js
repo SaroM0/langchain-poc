@@ -37,7 +37,6 @@ async function apiCallWithRetries(
   try {
     return await apiFunction(...args);
   } catch (error) {
-    // Check if error indicates a rate limit or transient error (e.g., code 429 for rate limit)
     if (retries > 0 && (error.code === 429 || error.code === 50001)) {
       console.warn(
         `API rate limit or transient error encountered (code: ${error.code}). Retrying in ${delay}ms...`
@@ -56,7 +55,7 @@ async function apiCallWithRetries(
 
 /**
  * Helper function to fetch all messages from a text-based entity (channel or thread) using pagination.
- * Uses the apiCallWithRetries helper to handle rate limits.
+ * If the entity is a thread, adds an extra option (time) as en la versión antigua.
  * @param {TextChannel|ThreadChannel} entity - The channel or thread object.
  * @returns {Promise<Array>} - An array with all fetched messages.
  */
@@ -64,7 +63,11 @@ async function fetchAllMessages(entity) {
   const allMessages = [];
   let lastMessageId = null;
   while (true) {
+    // Configurar opciones; si es un thread, incluir "time"
     const options = { limit: 100 };
+    if (entity.isThread && entity.isThread()) {
+      options.time = 3600000;
+    }
     if (lastMessageId) options.before = lastMessageId;
     let batch;
     try {
@@ -88,15 +91,7 @@ async function fetchAllMessages(entity) {
  */
 async function processMembers(server, serverInternalId) {
   await server.members.fetch();
-  // For debugging: log complete member objects if necessary.
-  server.members.cache.forEach((member) => {
-    console.log(
-      "Full member object for",
-      member.user.username,
-      ":",
-      JSON.stringify(member, null, 2)
-    );
-  });
+  server.members.cache.forEach((member) => {});
 
   await Promise.all(
     Array.from(server.members.cache.values()).map(async (member) => {
@@ -106,21 +101,13 @@ async function processMembers(server, serverInternalId) {
             `Member ${member.id} (${member.user.username}) has no joinedAt info.`
           );
         }
-        console.log(
-          "Member roles for",
-          member.user.username,
-          ":",
-          JSON.stringify(Array.from(member.roles.cache.keys()))
-        );
+
         const userInternalId = await upsertUser(
           member.id,
           serverInternalId,
           member.user.username,
           member.nickname ? member.nickname : member.displayName,
           member.joinedTimestamp
-        );
-        console.log(
-          `User ${member.user.username} saved with internal ID: ${userInternalId}`
         );
 
         const roles = Array.from(member.roles.cache.values());
@@ -131,9 +118,6 @@ async function processMembers(server, serverInternalId) {
           roles.map(async (role) => {
             try {
               await saveUserRole(userInternalId, role.id, member.joinedAt);
-              console.log(
-                `Associated role ${role.name} (${role.id}) to user ${member.user.username}`
-              );
             } catch (error) {
               console.error(
                 `Error saving user role for user ${member.id} with role ${role.id}:`,
@@ -157,7 +141,6 @@ async function processRoles(server) {
     Array.from(server.roles.cache.values()).map(async (role) => {
       try {
         await saveRole(role);
-        console.log(`Role ${role.name} (${role.id}) saved.`);
       } catch (error) {
         console.error(`Error saving role ${role.id}:`, error);
       }
@@ -180,9 +163,6 @@ async function processChannels(server, serverInternalId) {
       try {
         channelInternalId = await saveChannel(serverInternalId, channel);
         parentChannelMap[channel.id] = channelInternalId;
-        console.log(
-          `Channel ${channel.name} (${channel.id}) saved with ID: ${channelInternalId}`
-        );
       } catch (error) {
         if (error.code === 50001) {
           console.warn(
@@ -194,9 +174,6 @@ async function processChannels(server, serverInternalId) {
         return;
       }
       const fetchedMessages = await fetchAllMessages(channel);
-      console.log(
-        `Fetched ${fetchedMessages.length} messages for channel ${channel.name}`
-      );
 
       if (fetchedMessages.length === 0) {
         console.warn(
@@ -208,14 +185,6 @@ async function processChannels(server, serverInternalId) {
       }
       await Promise.all(
         fetchedMessages.map(async (msg) => {
-          if (msg.reference) {
-            console.log(
-              "Message",
-              msg.id,
-              "has a parent message reference:",
-              JSON.stringify(msg.reference)
-            );
-          }
           // Save the message and capture its internal ID.
           const messageInternalId = await saveMessage(
             serverInternalId,
@@ -302,8 +271,8 @@ async function processThreads(
             })
           );
 
-          // Validate thread type (example: valid types 10, 11, 12)
-          if (![10, 11, 12].includes(thread.type)) {
+          // Aceptar también el tipo 10 para compatibilidad.
+          if (![10, 11, 12, 13].includes(thread.type)) {
             console.warn(
               `Thread ${thread.id} is not a valid thread type. Skipping.`
             );
@@ -324,26 +293,14 @@ async function processThreads(
             parentChannelInternalId,
             thread
           );
-          console.log(
-            `Thread ${thread.name || thread.title} (${
-              thread.id
-            }) saved with internal ID: ${threadInternalId}`
-          );
 
           const fetchedMessages = await fetchAllMessages(thread);
-          console.log(
-            `Fetched ${fetchedMessages.length} messages for thread ${thread.id}`
-          );
 
           await Promise.all(
             fetchedMessages.map(async (msg) => {
-              if (msg.reference) {
-                console.log(
-                  "Thread message",
-                  msg.id,
-                  "has a parent message reference:",
-                  JSON.stringify(msg.reference)
-                );
+              // Filtrar mensajes iniciadores de thread para evitar guardarlos como mensajes.
+              if (msg.type === "THREAD_STARTER_MESSAGE" || msg.type === 19) {
+                return;
               }
               // Save the message within the thread.
               const messageInternalId = await saveMessage(
@@ -404,23 +361,20 @@ async function syncDiscordData() {
     client.once("ready", async () => {
       try {
         console.log("Discord client is ready. Starting synchronization...");
-        // 1. Organization: Ensure organization exists.
+        // Ensure organization exists.
         const organizationId = await ensureOrganization();
-        console.log("Organization ensured with ID:", organizationId);
 
-        // Iterate over each server (guild) in the Discord cache.
+        // Iterate over each guild in the Discord client's cache.
         for (const [guildId, server] of client.guilds.cache) {
-          console.log(`Processing server: ${server.name} (${server.id})`);
           const serverInternalId = await saveServer(server, organizationId);
-          console.log(`Server saved with internal ID: ${serverInternalId}`);
 
-          // Process members, roles, channels and threads concurrently.
+          // Process members and roles concurrently.
           await Promise.all([
             processMembers(server, serverInternalId),
             processRoles(server),
           ]);
 
-          // Process channels and get a mapping of channel IDs.
+          // Process channels and get mapping of channel IDs.
           const parentChannelMap = await processChannels(
             server,
             serverInternalId
@@ -444,7 +398,6 @@ async function syncDiscordData() {
         reject(error);
       }
     });
-    // If the client is already ready, emit "ready" immediately.
     if (client.readyAt) {
       client.emit("ready");
     }

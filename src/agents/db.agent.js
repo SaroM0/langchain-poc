@@ -50,7 +50,6 @@ async function iterativeExecuteQuery(sqlQuery, maxIterations = 3) {
 }
 
 // Helper function to ensure that a subquery does not return empty.
-// If an empty result is obtained, it asks the model to generate a new query for that resource.
 async function ensureNonEmptyResult(
   promptTemplate,
   contextVars,
@@ -99,9 +98,10 @@ And the user's query:
 "${userQuery}"
 
 Identify any dynamic resources (such as specific table entries, field values, identifiers, etc.) mentioned in the query that need to be verified against the database.
-Do NOT assume or hardcode any names, tables, or attributes that have not been validated.
+DO NOT assume or hardcode any names, tables, or attributes that have not been validated.
+Only use the table and column names present in the schema.
 Generate one or more SQL queries dynamically that can validate or retrieve the actual existing values for these resources.
-Return your answer strictly as a JSON object with a single key "validationQueries" containing an array of objects, each with two keys: "description" and "sqlQuery".
+Return your answer strictly as a JSON object with a single key "validationQueries" containing an array of objects, each with keys "description" and "sqlQuery".
 If no validation is needed, return {"validationQueries": []}.`;
 
   const response = await openaiChat.invoke(
@@ -138,13 +138,12 @@ If no validation is needed, return {"validationQueries": []}.`;
   state.validations = { queries: parsed.validationQueries, results: {} };
   for (const queryObj of parsed.validationQueries) {
     let result = await iterativeExecuteQuery(queryObj.sqlQuery);
-    // If the result is empty, attempt to generate a new query for that resource.
     if (Array.isArray(result) && result.length === 0) {
       result = await ensureNonEmptyResult(
         (
           resource
         ) => `You are a SQL expert. The previous validation query for resource "${resource}" returned an empty result.
-Please re-generate a new SQL query that verifies the existence of this resource in the database.
+Please re-generate a new SQL query that verifies the existence of this resource in the database, using only table and column names from the schema.
 Return your answer as a JSON object with a key "validationQueries" containing an array with one object having keys "description" and "sqlQuery".`,
         [queryObj.description],
         result
@@ -166,7 +165,7 @@ Return your answer as a JSON object with a key "validationQueries" containing an
 async function metadataCheckNode(state) {
   const userQuery = state.messages[0].content;
   const dbContext = await getCachedDatabaseContext();
-  const prompt = `You are an expert SQL assistant. Using only the following complete database schema summary:
+  const prompt = `You are a SQL expert. Using only the following complete database schema summary:
 ${dbContext}
 
 And the user query:
@@ -252,7 +251,7 @@ ${dbContext}
 And the user's query:
 "${userQuery}"
 
-Identify any fields or values (for example, dynamic entries such as reactions, status codes, etc.) that need to be inspected to retrieve the actual distinct values present in the database.
+Identify any fields or values (e.g., dynamic entries such as reactions or status codes) that need to be inspected to retrieve the actual distinct values present in the database.
 Generate one or more SQL queries dynamically that retrieve the distinct values for those fields.
 Return your answer strictly as a JSON object with a single key "inspectionQueries" containing an array of objects, each with keys "description" and "sqlQuery".
 If no inspection is needed, return {"inspectionQueries": []}.`;
@@ -291,13 +290,12 @@ If no inspection is needed, return {"inspectionQueries": []}.`;
   state.inspections = { queries: parsed.inspectionQueries, results: {} };
   for (const queryObj of parsed.inspectionQueries) {
     let result = await iterativeExecuteQuery(queryObj.sqlQuery);
-    // If the result is still empty, re-request a new query from the model.
     if (Array.isArray(result) && result.length === 0) {
       result = await ensureNonEmptyResult(
         (
           ...args
         ) => `You are a SQL expert. The inspection query for "${args[0]}" returned an empty result.
-Please re-generate a SQL query to inspect this field and retrieve distinct values.
+Please re-generate a SQL query to inspect this field and retrieve distinct values, using only columns from the schema.
 Return your answer as a JSON object with a key "inspectionQueries" containing an array with one object having keys "description" and "sqlQuery".`,
         [queryObj.description],
         result
@@ -327,7 +325,6 @@ async function summarizeContextNode(state) {
       contextToSummarize += msg.content + "\n";
     }
   }
-  // Only summarize if context is lengthy (e.g., over 1000 characters)
   if (contextToSummarize.length < 1000) {
     return state;
   }
@@ -374,6 +371,7 @@ ${errorContext}
 
 You are a SQL expert with deep knowledge of MySQL. Your task is to convert the following natural language description into a precise, syntactically correct raw SQL SELECT query for MySQL.
 Important: Only use the tables, columns, and the validated/inspected data provided above. Do NOT assume any names, tables, or attributes that have not been verified.
+DO NOT include any table or column names that are not present in the provided schema.
 Guidelines:
 1. The query must be a valid SELECT query that only retrieves data.
 2. Use appropriate clauses for filtering, grouping, ordering, and pagination as needed.
@@ -381,7 +379,7 @@ Guidelines:
 4. Enclose table and column names in backticks (\`) when necessary.
 5. Return your answer as a valid JSON object with a single key "sqlQuery" containing the SQL query.
 Example:
-{"sqlQuery": "SELECT \`User\`.id, COUNT(\`Message\`.id) AS messageCount FROM \`User\` JOIN \`Message\` ON \`User\`.id = \`Message\`.userId GROUP BY \`User\`.id ORDER BY messageCount DESC LIMIT 5"}
+{"sqlQuery": "SELECT \`user\`.id, COUNT(\`message\`.id) AS messageCount FROM \`user\` JOIN \`message\` ON \`user\`.id = \`message\`.fk_user_id GROUP BY \`user\`.id ORDER BY messageCount DESC LIMIT 5"}
 Your answer must be a valid JSON object only (no extra text).`,
   };
   const userMessage = {
@@ -421,21 +419,20 @@ Your answer must be a valid JSON object only (no extra text).`,
 
 // -------------------------------------------------------------------------
 // Node: logicalValidationNode
-// This new node performs logical validation of the generated SQL query.
+// This node performs logical validation of the generated SQL query.
 async function logicalValidationNode(state) {
   const userQuery = state.messages[0].content;
   const lastMessage = state.messages[state.messages.length - 1];
   const sqlQuery = lastMessage.content;
 
-  // Security check: ensure the query is a SELECT query.
   if (!/^SELECT\s/i.test(sqlQuery.trim())) {
     throw new Error("Only SELECT queries are allowed. Query blocked.");
   }
 
   const prompt = `You are a SQL expert. The user query is: "${userQuery}" and the generated SQL query is: "${sqlQuery}". 
-Verify if this SQL query logically meets all the conditions specified by the user.
+Verify if this SQL query logically meets all the conditions specified by the user AND that it only uses table and column names from the provided schema.
 If the query is logically correct and complete, reply with a JSON object: {"validation": "VALID"}.
-If there are missing conditions or logical issues, reply with a JSON object containing a key "corrections" describing the issues and a key "newQuery" with the corrected SQL query.`;
+If there are missing conditions or logical issues (e.g. references to unknown columns like sentiment_score, or using plural table names), reply with a JSON object containing a key "corrections" describing the issues and a key "newQuery" with the corrected SQL query.`;
 
   const response = await openaiChat.invoke(
     [{ role: "user", content: prompt }],
@@ -460,20 +457,14 @@ If there are missing conditions or logical issues, reply with a JSON object cont
   }
   if (parsed.validation !== "VALID") {
     if (parsed.newQuery) {
-      state.messages.push(
-        new AIMessage(
-          `Logical Validation Correction: ${JSON.stringify(parsed)}`
-        )
+      state.messages[state.messages.length - 1] = new AIMessage(
+        parsed.newQuery
       );
-      // Replace the last query with the corrected one.
-      state.messages.push(new AIMessage(parsed.newQuery));
     } else {
       throw new Error(
         "Logical validation failed without providing a new query."
       );
     }
-  } else {
-    state.messages.push(new AIMessage("Logical Validation: VALID"));
   }
   return state;
 }
@@ -486,7 +477,6 @@ async function executeSQLTool(state) {
   const sqlQuery = lastMessage.content;
   console.log("[executeSQLTool] Executing SQL query:", sqlQuery);
 
-  // Security check: only allow SELECT queries.
   if (!/^SELECT\s/i.test(sqlQuery.trim())) {
     throw new Error("Only SELECT queries are allowed. Query blocked.");
   }
@@ -511,12 +501,11 @@ async function executeSQLTool(state) {
       if (lowerMsg.includes("syntax")) {
         errorPrompt = `The previous SQL query had a syntax error: "${error.message}". Please generate a new query with correct syntax.`;
       } else if (lowerMsg.includes("unknown column")) {
-        errorPrompt = `The previous SQL query referenced an unknown column. Correct the query using the validated schema.`;
+        errorPrompt = `The previous SQL query referenced an unknown column. Correct the query using only validated column names from the schema.`;
       } else {
         errorPrompt = `The previous SQL query failed with error: "${error.message}". Please generate a new query considering this error.`;
       }
       state.messages.push(new HumanMessage(errorPrompt));
-      // Regenerate the query by calling logicalValidationNode to trigger regeneration.
       const newState = await logicalValidationNode(state);
       return await executeSQLTool(newState);
     } else {
@@ -532,10 +521,9 @@ async function executeSQLTool(state) {
 
 // -------------------------------------------------------------------------
 // Node: rephraseAnswerNode
-// This node uses the executed query result to produce a natural language answer.
+// -------------------------------------------------------------------------
 async function rephraseAnswerNode(state) {
   const lastResultMessage = state.messages[state.messages.length - 1].content;
-  // Check for empty results.
   if (lastResultMessage === "[]" || lastResultMessage.trim() === "") {
     state.messages.push(new AIMessage("No data found for your query."));
     return state;

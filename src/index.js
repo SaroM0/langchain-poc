@@ -12,7 +12,7 @@ const {
   createIndicesForNewChannels,
   processChannelMessages,
 } = require("./services/vectorize/channelVectorization");
-const { Channel } = require("./models/db/channel.model");
+const { Channel } = require("./models/db");
 // Option 6: Import Discord Service to sync information from Discord
 const { syncDiscordData } = require("./services/discord/discord.service");
 
