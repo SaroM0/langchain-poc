@@ -27,6 +27,10 @@ const Channel = sequelize.define(
     created_at: {
       type: DataTypes.DATE,
     },
+    is_indexed: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     tableName: "channel",
@@ -36,7 +40,7 @@ const Channel = sequelize.define(
 
 // Add model metadata: a general description and per-attribute descriptions.
 Channel.modelDescription =
-  "Represents a communication channel on a Discord server. This model stores key details such as the unique Discord ID, the associated server, the channel name, type, and creation date.";
+  "Represents a communication channel on a Discord server. This model stores key details such as the unique Discord ID, the associated server, the channel name, type, creation date, and whether it has been indexed in Pinecone.";
 Channel.attributeDescriptions = {
   id: "Unique identifier for the channel.",
   discord_id: "Unique Discord identifier for the channel.",
@@ -44,6 +48,7 @@ Channel.attributeDescriptions = {
   name: "The name of the channel.",
   channel_type: "The type of the channel (e.g., text, voice).",
   created_at: "Timestamp indicating when the channel was created.",
+  is_indexed: "Indicates if the channel has been indexed in Pinecone.",
 };
 
 module.exports = Channel;

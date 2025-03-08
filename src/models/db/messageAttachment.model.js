@@ -9,7 +9,7 @@ const MessageAttachment = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    message_id: {
+    fk_message_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -27,10 +27,10 @@ const MessageAttachment = sequelize.define(
 );
 
 MessageAttachment.modelDescription =
-  "Represents an attachment associated with a message. This model stores the URL of the attachment, the associated message ID, and its creation timestamp.";
+  "Represents an attachment associated with a message. This model stores the URL of the attachment, the associated message foreign key, and its creation timestamp.";
 MessageAttachment.attributeDescriptions = {
   id: "Unique identifier for the message attachment record.",
-  message_id: "Foreign key linking the attachment to a specific message.",
+  fk_message_id: "Foreign key linking the attachment to a specific message.",
   attachment_url: "The URL of the attachment.",
   created_at: "Timestamp indicating when the attachment was created.",
 };
