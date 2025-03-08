@@ -16,7 +16,7 @@ async function saveMessageAttachment(
   try {
     const [attachmentRecord, created] = await MessageAttachment.findOrCreate({
       where: {
-        message_id: messageInternalId,
+        fk_message_id: messageInternalId, // Se actualiza el nombre de la columna
         attachment_url: attachmentUrl,
       },
       defaults: {
