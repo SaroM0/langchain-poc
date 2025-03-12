@@ -271,7 +271,7 @@ async function processThreads(
             })
           );
 
-          // Aceptar también el tipo 10 para compatibilidad.
+          // Validar que el thread tenga un tipo válido: 10, 11, 12 o 13.
           if (![10, 11, 12, 13].includes(thread.type)) {
             console.warn(
               `Thread ${thread.id} is not a valid thread type. Skipping.`
@@ -279,7 +279,8 @@ async function processThreads(
             return;
           }
           if (!thread.parentId) {
-            console.warn(`Thread ${thread.id} has no parentId.`);
+            console.warn(`Thread ${thread.id} has no parentId. Skipping.`);
+            return;
           }
           const parentChannelInternalId = parentChannelMap[thread.parentId];
           if (!parentChannelInternalId) {

@@ -47,6 +47,7 @@ CREATE TABLE `user` (
     fk_server_id INT NOT NULL,
     nick VARCHAR(255),
     name VARCHAR(255),
+    avatar_url VARCHAR(255) COMMENT 'URL of the user avatar',
     joined_at DATETIME COMMENT 'Timestamp when the user joined the server',
     CONSTRAINT fk_user_server FOREIGN KEY (fk_server_id)
       REFERENCES server(id)

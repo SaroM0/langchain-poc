@@ -30,6 +30,7 @@ discord_id bigint [not null, unique, note: "Discord-assigned identifier for the 
 fk_server_id int [not null, note: "Foreign key to server"]
 nick varchar
 name varchar
+avatar_url varchar [note: "URL of the user's avatar"]
 joined_at datetime [note: "Timestamp when the user joined the server"]
 }
 
@@ -127,12 +128,12 @@ Ref: message.fk_parent_message_id > message.id
 ////////////////////////////////////////////////////
 Table message_attachment {
 id int [pk, increment, note: "Unique identifier for the attachment"]
-fk_message_id int [not null, note: "Foreign key to message"]
+message_id int [not null, note: "Foreign key to message"]
 attachment_url text
 created_at datetime
 }
 
-Ref: message_attachment.fk_message_id > message.id
+Ref: message_attachment.message_id > message.id
 
 ////////////////////////////////////////////////////
 // MESSAGE_REACTION

@@ -65,9 +65,9 @@ UserRole.belongsTo(User, { foreignKey: "fk_user_id" });
 Role.hasMany(UserRole, { foreignKey: "fk_role_id" });
 UserRole.belongsTo(Role, { foreignKey: "fk_role_id" });
 
-// Message -> MessageAttachment
-Message.hasMany(MessageAttachment, { foreignKey: "message_id" });
-MessageAttachment.belongsTo(Message, { foreignKey: "message_id" });
+// Message -> MessageAttachment (actualizado)
+Message.hasMany(MessageAttachment, { foreignKey: "fk_message_id" });
+MessageAttachment.belongsTo(Message, { foreignKey: "fk_message_id" });
 
 // Message -> MessageReaction
 Message.hasMany(MessageReaction, { foreignKey: "fk_message_id" });

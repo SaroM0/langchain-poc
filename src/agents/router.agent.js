@@ -29,7 +29,7 @@ async function getQuantitativeQuery(query) {
   const prompt = `You are a SQL expert specialized in quantitative analysis.
 Given the following user query:
 "${query}"
-Generate a refined quantitative query that instructs the DB agent to return channel names and user names representing the most active and positive participants.
+Generate a refined quantitative query that instructs the DB agent to return relevant database information in a structured format.
 Return only the refined query as plain text.`;
 
   const response = await openaiChat.invoke([new HumanMessage(prompt)], {
