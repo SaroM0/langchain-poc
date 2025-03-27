@@ -1,4 +1,4 @@
-const client = require("../../config/discordClient");
+const { client, initializeClient } = require("../../config/discordClient");
 const { ensureOrganization } = require("./discordToDb/organization.service");
 const { upsertUser } = require("./discordToDb/user.service");
 const { saveUserRole } = require("./discordToDb/userRole.service");
@@ -358,51 +358,59 @@ async function processMessageAttachments(messageInternalId, msg) {
  * Main function to synchronize Discord data with the database.
  */
 async function syncDiscordData() {
-  return new Promise((resolve, reject) => {
-    client.once("ready", async () => {
-      try {
-        console.log("Discord client is ready. Starting synchronization...");
-        // Ensure organization exists.
-        const organizationId = await ensureOrganization();
+  // Initialize Discord client before using it
+  try {
+    await initializeClient();
+    
+    return new Promise((resolve, reject) => {
+      client.once("ready", async () => {
+        try {
+          console.log("Discord client is ready. Starting synchronization...");
+          // Ensure organization exists.
+          const organizationId = await ensureOrganization();
 
-        // Iterate over each guild in the Discord client's cache.
-        for (const [guildId, server] of client.guilds.cache) {
-          const serverInternalId = await saveServer(server, organizationId);
+          // Iterate over each guild in the Discord client's cache.
+          for (const [guildId, server] of client.guilds.cache) {
+            const serverInternalId = await saveServer(server, organizationId);
 
-          // Process members and roles concurrently.
-          await Promise.all([
-            processMembers(server, serverInternalId),
-            processRoles(server),
-          ]);
+            // Process members and roles concurrently.
+            await Promise.all([
+              processMembers(server, serverInternalId),
+              processRoles(server),
+            ]);
 
-          // Process channels and get mapping of channel IDs.
-          const parentChannelMap = await processChannels(
-            server,
-            serverInternalId
-          );
+            // Process channels and get mapping of channel IDs.
+            const parentChannelMap = await processChannels(
+              server,
+              serverInternalId
+            );
 
-          // Process threads based on non-thread channels.
-          const nonThreadChannels = server.channels.cache.filter(
-            (ch) => ch.isTextBased() && !ch.isThread()
-          );
-          await processThreads(
-            nonThreadChannels,
-            serverInternalId,
-            parentChannelMap
-          );
+            // Process threads based on non-thread channels.
+            const nonThreadChannels = server.channels.cache.filter(
+              (ch) => ch.isTextBased() && !ch.isThread()
+            );
+            await processThreads(
+              nonThreadChannels,
+              serverInternalId,
+              parentChannelMap
+            );
 
-          console.log(`Finished processing data for server: ${server.name}`);
+            console.log(`Finished processing data for server: ${server.name}`);
+          }
+          resolve();
+        } catch (error) {
+          console.error("Error processing servers:", error);
+          reject(error);
         }
-        resolve();
-      } catch (error) {
-        console.error("Error processing servers:", error);
-        reject(error);
+      });
+      if (client.readyAt) {
+        client.emit("ready");
       }
     });
-    if (client.readyAt) {
-      client.emit("ready");
-    }
-  });
+  } catch (error) {
+    console.error("Error initializing Discord client:", error);
+    throw error;
+  }
 }
 
 module.exports = { syncDiscordData };

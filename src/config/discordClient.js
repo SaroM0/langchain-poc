@@ -33,8 +33,16 @@ client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-// Log in to Discord using the token stored in .env
-client.login(process.env.DISCORD_TOKEN);
+// Función para inicializar el cliente cuando sea necesario
+const initializeClient = () => {
+  // Solo inicializar si el token existe
+  if (process.env.DISCORD_TOKEN) {
+    return client.login(process.env.DISCORD_TOKEN);
+  } else {
+    console.log("DISCORD_TOKEN no está configurado en el archivo .env");
+    return Promise.resolve();
+  }
+};
 
-// Export the client so it can be used in other parts of the application
-module.exports = client;
+// Export the client and initialization function
+module.exports = { client, initializeClient };

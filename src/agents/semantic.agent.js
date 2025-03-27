@@ -1,17 +1,17 @@
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { StateGraph } from "@langchain/langgraph";
-import {
+const { AIMessage, HumanMessage } = require("@langchain/core/messages");
+const { StateGraph } = require("@langchain/langgraph");
+const {
   MemorySaver,
   Annotation,
   messagesStateReducer,
-} from "@langchain/langgraph";
-import { openaiChat } from "../config/openai.config.js";
-import { executeQuery } from "../services/db/executeQuery.service.js";
-import {
+} = require("@langchain/langgraph");
+const { openaiChat } = require("../config/openai.config");
+const { executeQuery } = require("../services/db/executeQuery.service");
+const {
   structureFullResults,
   extractDateRange,
-} from "../services/semantic/semanticSearch.service.js";
-import { listPineconeIndexes } from "../config/pinecone.config.js";
+} = require("../services/semantic/semanticSearch.service");
+const { listPineconeIndexes } = require("../config/pinecone.config");
 
 // -------------------------------------------------------------------------
 // Nodo: getChannelsNode
@@ -248,29 +248,47 @@ const semanticAgentStateGraph = new StateGraph(StateAnnotation)
   .addNode("filterVectorizedChannels", vectorizedChannelsNode)
   .addNode("selectChannels", channelSelectionNode)
   .addNode("semanticSearch", semanticSearchNode)
-  .addNode("aggregate", aggregationNode)
-  .addNode("rephrase", rephraseAnswerNode)
-  .addEdge("__start__", "getChannels")
+  .addNode("aggregateResults", aggregationNode)
+  .addNode("rephraseAnswer", rephraseAnswerNode)
   .addEdge("getChannels", "filterVectorizedChannels")
   .addEdge("filterVectorizedChannels", "selectChannels")
   .addEdge("selectChannels", "semanticSearch")
-  .addEdge("semanticSearch", "aggregate")
-  .addEdge("aggregate", "rephrase");
+  .addEdge("semanticSearch", "aggregateResults")
+  .addEdge("aggregateResults", "rephraseAnswer")
+  .addEdge("__start__", "getChannels")
+  .addEdge("rephraseAnswer", "__end__");
+
+// Convertidor del gráfico a GraphExecutor
+const semanticAgentGraph = semanticAgentStateGraph.compile();
+const semanticMemorySaver = new MemorySaver({
+  key: "semantic_agent",
+  initialState: { metadata: {} },
+});
 
 // -------------------------------------------------------------------------
-// Guardar el estado en memoria y compilar el StateGraph
+// Función de invocación del agente semántico
 // -------------------------------------------------------------------------
-const checkpointer = new MemorySaver();
-const semanticAgent = semanticAgentStateGraph.compile({ checkpointer });
-
-// -------------------------------------------------------------------------
-// Función de conveniencia para invocar el Semantic Agent
-// -------------------------------------------------------------------------
-export async function invokeSemanticAgent(query, config = {}) {
-  const initialState = { messages: [new HumanMessage(query)] };
-  const finalState = await semanticAgent.invoke(initialState, {
-    configurable: { thread_id: "default-thread", ...config },
-  });
-  const finalMessage = finalState.messages[finalState.messages.length - 1];
-  return finalMessage.content;
+async function invokeSemanticAgent(query, config = {}) {
+  const inputs = {
+    messages: [new HumanMessage(query)],
+    metadata: config || {},
+  };
+  console.log("[invokeSemanticAgent] Starting with inputs:", JSON.stringify(inputs));
+  try {
+    const execConfig = { configurable: { saver: semanticMemorySaver } };
+    if (config?.thread_id) {
+      execConfig.configurable.sessionId = config.thread_id;
+    }
+    const response = await semanticAgentGraph.invoke(inputs, execConfig);
+    
+    // Return the last message from the agent
+    const lastMessage = response.messages[response.messages.length - 1];
+    const content = lastMessage?.content || "No response generated.";
+    return content;
+  } catch (error) {
+    console.error("[invokeSemanticAgent] Error:", error);
+    return "Error processing your request through the semantic agent: " + error.message;
+  }
 }
+
+module.exports = { invokeSemanticAgent };

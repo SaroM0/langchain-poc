@@ -1,11 +1,10 @@
-// Load environment variables from the .env file
-import "dotenv/config";
+require("dotenv").config();
 
 // Import the Pinecone configuration and dependencies
-import { initPinecone } from "../../config/pinecone.config.js";
-import { PineconeStore } from "@langchain/pinecone";
-import { openaiEmbeddings, openaiChat } from "../../config/openai.config.js";
-import { HumanMessage } from "@langchain/core/messages";
+const { initPinecone } = require("../../config/pinecone.config");
+const { PineconeStore } = require("@langchain/pinecone");
+const { openaiEmbeddings, openaiChat } = require("../../config/openai.config");
+const { HumanMessage } = require("@langchain/core/messages");
 
 /**
  * Initializes the vector store by obtaining the Pinecone index and creating an instance
@@ -151,7 +150,7 @@ Query: "${query}"`;
 }
 
 // Export the functions for use in other parts of the application
-export {
+module.exports = {
   searchSimilarity,
   structureFragments,
   structureFullResults,

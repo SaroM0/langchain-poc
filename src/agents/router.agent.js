@@ -1,17 +1,18 @@
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { tool } from "@langchain/core/tools";
-import { z } from "zod";
-import { StateGraph } from "@langchain/langgraph";
-import {
+const { AIMessage, HumanMessage } = require("@langchain/core/messages");
+const { tool } = require("@langchain/core/tools");
+const { z } = require("zod");
+const { StateGraph } = require("@langchain/langgraph");
+const {
+  RunnableLambda,
   MemorySaver,
   Annotation,
   messagesStateReducer,
-} from "@langchain/langgraph";
-import { ToolNode } from "@langchain/langgraph/prebuilt";
+} = require("@langchain/langgraph");
+const { ToolNode } = require("@langchain/langgraph/prebuilt");
 
-import { invokeSQLAgent } from "./db.agent.js";
-import { invokeSemanticAgent } from "./semantic.agent.js";
-import { openaiChat } from "../config/openai.config.js";
+const { invokeSQLAgent } = require("./db.agent");
+const { invokeSemanticAgent } = require("./semantic.agent");
+const { openaiChat } = require("../config/openai.config");
 
 // --------------------------------------------------
 // 1. Define state annotation to store messages
@@ -255,9 +256,14 @@ const app = workflow.compile({ checkpointer });
 // --------------------------------------------------
 // 13. Convenience function to invoke the router
 // --------------------------------------------------
-export async function invokeRouter(query, config = {}) {
-  const messages = [new HumanMessage(query)];
-  const finalState = await app.invoke({ messages }, { configurable: config });
+async function invokeRouter(query, config = {}) {
+  const initialState = { messages: [new HumanMessage(query)] };
+  const finalState = await app.invoke(initialState, {
+    configurable: { thread_id: "default-thread", ...config },
+  });
   const finalMessage = finalState.messages[finalState.messages.length - 1];
   return finalMessage.content;
 }
+
+// Export the invokeRouter function
+module.exports = { invokeRouter };
