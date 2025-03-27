@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../../config/sequelize.config");
+const { sequelize } = require("../../config/sequelize.config");
 
 const MessageReaction = sequelize.define(
   "MessageReaction",

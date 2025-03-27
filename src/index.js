@@ -15,6 +15,10 @@ const {
 const { Channel } = require("./models/db");
 // Option 6: Import Discord Service to sync information from Discord
 const { syncDiscordData } = require("./services/discord/discord.service");
+// Option 7: Import Database Initialization Service
+const { initializeDatabase } = require("./services/db/initDatabase.service");
+// Import sequelize y la función testConnection desde la nueva exportación
+const { sequelize, testConnection } = require("./config/sequelize.config");
 
 // Create an interface for reading input from the console.
 const rl = readline.createInterface({
@@ -30,6 +34,7 @@ console.log("3: Route Query via Router Agent");
 console.log("4: Index Channels");
 console.log("5: Vectorize Channel Messages");
 console.log("6: Obtener información de Discord");
+console.log("7: Inicializar Base de Datos (Crear tablas)");
 
 // Function to keep the Router Agent conversation active.
 function startRouterConversation() {
@@ -154,6 +159,16 @@ rl.question("Option: ", (option) => {
       })
       .catch((error) => {
         console.error("Error sincronizando información de Discord:", error);
+      })
+      .finally(() => rl.close());
+  } else if (trimmed === "7") {
+    console.log("Inicializando la base de datos...");
+    initializeDatabase()
+      .then(() => {
+        console.log("Base de datos inicializada correctamente");
+      })
+      .catch((error) => {
+        console.error("Error al inicializar la base de datos:", error);
       })
       .finally(() => rl.close());
   } else {

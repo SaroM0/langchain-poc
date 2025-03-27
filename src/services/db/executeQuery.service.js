@@ -1,4 +1,4 @@
-const sequelize = require("../../config/sequelize.config");
+const { sequelize } = require("../../config/sequelize.config");
 
 /**
  * Executes a raw SQL query using Sequelize.

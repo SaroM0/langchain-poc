@@ -12,9 +12,13 @@ const sequelize = new Sequelize(
     pool: {
       max: 10,
       min: 0,
-      acquire: 30000,
+      acquire: 60000,
       idle: 10000,
     },
+    dialectOptions: {
+      connectTimeout: 60000,
+    },
+    logging: false
   }
 );
 
@@ -22,11 +26,11 @@ async function testConnection() {
   try {
     await sequelize.authenticate();
     console.log("Connection has been established successfully.");
+    return true;
   } catch (error) {
     console.error("Unable to connect to the database:", error);
+    return false;
   }
 }
 
-testConnection();
-
-module.exports = sequelize;
+module.exports = { sequelize, testConnection };
