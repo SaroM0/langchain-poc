@@ -17,9 +17,9 @@ DROP TABLE IF EXISTS organization;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
-----------------------------------------------------
+-- ----------------------------------------------------
 -- Create new version of the database schema
-----------------------------------------------------
+-- ----------------------------------------------------
 
 -- Table ORGANIZATION
 CREATE TABLE organization (
@@ -80,7 +80,7 @@ CREATE TABLE channel (
     discord_id BIGINT NOT NULL UNIQUE COMMENT 'Discord-assigned identifier for the channel',
     fk_server_id INT NOT NULL,
     name VARCHAR(255),
-    channel_type VARCHAR(50) COMMENT 'Example: "text" or "forum"',
+    channel_type VARCHAR(50) COMMENT 'Example: text or forum',
     created_at DATETIME,
     is_indexed BOOLEAN DEFAULT false COMMENT 'Indicates if the channel has been indexed in Pinecone',
     CONSTRAINT fk_channel_server FOREIGN KEY (fk_server_id)
@@ -148,7 +148,7 @@ CREATE TABLE message_reaction (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fk_message_id INT NOT NULL,
     fk_user_id INT NOT NULL,
-    reaction_type VARCHAR(50) COMMENT 'For example, "like", "love", "smile", etc.',
+    reaction_type VARCHAR(50) COMMENT 'For example, like, love, smile, etc.',
     created_at DATETIME,
     CONSTRAINT fk_message_reaction_message FOREIGN KEY (fk_message_id)
       REFERENCES message(id),
@@ -170,8 +170,8 @@ CREATE TABLE trending_topic (
 CREATE TABLE message_mention (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fk_message_id INT NOT NULL,
-    mention_type VARCHAR(50) NOT NULL COMMENT 'Type of mention: "user", "role", "here", or "all"',
-    target_id BIGINT COMMENT 'If mention_type is "user" or "role", this field stores the corresponding ID; for "here" or "all" it is NULL',
+    mention_type VARCHAR(50) NOT NULL COMMENT 'Type of mention: user, role, here, or all',
+    target_id BIGINT COMMENT 'If mention_type is user or role, this field stores the corresponding ID. For here or all, it is NULL',
     created_at DATETIME,
     CONSTRAINT fk_message_mention_message FOREIGN KEY (fk_message_id)
       REFERENCES message(id)
